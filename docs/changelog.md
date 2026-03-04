@@ -5,6 +5,23 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ---
 
+## [1.0.0] — 2026-03-04
+
+### Summary
+First production release. Complete cross-tool toolkit for the Sentinels ecosystem.
+All 4 domain tools (openproject, github, evidence, compliance) + cross-tool layer
+(sak-core, sak-cli, sak-trace, sak-gates, sak-metrics) + UI + tests + docs.
+
+### Added
+- Triada integration: sentinels-agents, sentinels-lighthouse, sentinels-agents-journal
+  updated with SAK references, integration docs, and cross-repo coordination
+
+### Changed
+- Version bumped to v1.0.0 across CLI, UI header, and all documentation
+- README ecosystem table updated to v1.0.0
+
+---
+
 ## [0.9.0-dev] — 2026-03-04
 
 ### Added

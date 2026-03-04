@@ -71,9 +71,15 @@
 - [x] `docs/api-reference.md` — Referencia completa de funciones y comandos
 - [x] Documentación actualizada (roadmap, changelog, architecture, README)
 
+### v1.0.0 — Production Release
+- [x] Version bump a v1.0.0 en CLI, UI y docs
+- [x] Integración triada: sentinels-agents, sentinels-lighthouse, sentinels-agents-journal
+- [x] Documentación de integración SAK en cada repo de la triada
+- [x] Cross-repo coordination: cada repo sabe cómo consumir agents-sak
+
 ---
 
-## Futuro (v1.0+)
+## Futuro (v1.1+)
 
 - `tools/notifications/` — Alertas por estado, bloqueos, gates
 - API REST propia para consumo programático

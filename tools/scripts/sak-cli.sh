@@ -21,7 +21,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/sak-core.sh"
 
-SAK_VERSION="0.9.0"
+SAK_VERSION="1.0.0"
 
 # ─── Tool paths ──────────────────────────────────────────────
 
