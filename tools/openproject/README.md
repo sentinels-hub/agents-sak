@@ -35,13 +35,23 @@ Formatos estándar para documentos y comunicaciones:
 | [governance-comment](templates/governance-comment.md) | Comentarios de governance |
 | [planning-tree](templates/planning-tree.md) | Árbol de planificación |
 
+### Scripts (`scripts/`)
+Herramientas CLI para operaciones directas contra la API:
+
+| Script | Uso |
+|--------|-----|
+| [op-setup.sh](scripts/op-setup.sh) | Setup y verificación: custom fields, saved queries, permisos |
+| [op-cli.sh](scripts/op-cli.sh) | CLI modular: queries, WP listing, relations, orquestación |
+
 ## Cómo usa esto un agente
 
 ```
 1. Lee el catálogo → Entiende QUÉ puede hacer
 2. Usa los templates → Sabe CÓMO formatear
 3. Valida con schemas → Verifica ANTES de enviar
-4. Ejecuta scripts → HACE la operación en OP
+4. Ejecuta op-cli.sh → LEE su cola de trabajo (queries)
+5. Ejecuta scripts → HACE la operación en OP
+6. Ejecuta op-cli.sh → ESCRIBE resultados (orchestration fields)
 ```
 
 ## Requisitos

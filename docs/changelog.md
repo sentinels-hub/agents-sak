@@ -5,6 +5,29 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ---
 
+## [0.3.0-dev] — 2026-03-04
+
+### Added
+- `tools/openproject/scripts/op-setup.sh` — Script de setup y verificación
+  - Verifica conectividad, auth, permisos
+  - Verifica custom fields de orquestación (Difficulty, Specialization, Agent Assigned, Tech Stack, Automation Level, Gate Current)
+  - Verifica custom fields de trazabilidad (Contract ID, GitHub PR, etc.)
+  - Crea saved queries por agente (13 queries, idempotente)
+  - Genera reporte con instrucciones para campos faltantes (Admin UI)
+- `tools/openproject/scripts/op-cli.sh` — CLI modular para orquestación
+  - `query list/exec/create/delete` — Gestión de saved queries
+  - `wp list/list-all/get` — Listado con filtros, paginación, múltiples formatos
+  - `wp set-orchestration` — Asignar campos de orquestación a un WP
+  - `wp set-orchestration-batch` — Batch via archivo TSV
+  - `relation create/list/check-blocked` — Gestión de relaciones entre WPs
+  - Cache de custom fields con TTL 24h
+  - Resolución automática de status/type por nombre
+
+### Changed
+- tools/openproject/README.md: Añadida sección de scripts con tabla de referencia
+
+---
+
 ## [0.2.0-dev] — 2026-03-04
 
 ### Added
