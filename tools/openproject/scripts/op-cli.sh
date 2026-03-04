@@ -342,11 +342,12 @@ cmd_wp_set_orchestration() {
   local wp_id="$1"
   shift
 
-  local difficulty="" specialization="" agent="" tech_stack="" automation="" gate=""
+  local difficulty="" size="" specialization="" agent="" tech_stack="" automation="" gate=""
 
   while [ $# -gt 0 ]; do
     case "$1" in
       --difficulty)      shift; difficulty="$1"; shift ;;
+      --size)            shift; size="$1"; shift ;;
       --specialization)  shift; specialization="$1"; shift ;;
       --agent)           shift; agent="$1"; shift ;;
       --tech-stack)      shift; tech_stack="$1"; shift ;;
@@ -385,8 +386,9 @@ cmd_wp_set_orchestration() {
   }
 
   _resolve_and_add "difficulty" "$difficulty"
+  _resolve_and_add "size" "$size"
   _resolve_and_add "specialization" "$specialization"
-  _resolve_and_add "agent assigned" "$agent"
+  _resolve_and_add "support agent" "$agent"
   _resolve_and_add "tech stack" "$tech_stack"
   _resolve_and_add "automation level" "$automation"
   _resolve_and_add "gate current" "$gate"
@@ -425,12 +427,13 @@ cmd_wp_set_orchestration_batch() {
   local count=0
   local errors=0
 
-  while IFS=$'\t' read -r wp_id difficulty specialization agent tech_stack automation gate; do
+  while IFS=$'\t' read -r wp_id difficulty size specialization agent tech_stack automation gate; do
     [[ "$wp_id" =~ ^#.*$ ]] && continue
     [[ -z "$wp_id" ]] && continue
 
     local args=("$wp_id")
     [ -n "$difficulty" ] && [ "$difficulty" != "-" ] && args+=(--difficulty "$difficulty")
+    [ -n "$size" ] && [ "$size" != "-" ] && args+=(--size "$size")
     [ -n "$specialization" ] && [ "$specialization" != "-" ] && args+=(--specialization "$specialization")
     [ -n "$agent" ] && [ "$agent" != "-" ] && args+=(--agent "$agent")
     [ -n "$tech_stack" ] && [ "$tech_stack" != "-" ] && args+=(--tech-stack "$tech_stack")
@@ -697,9 +700,10 @@ Work Packages:
                                    [--format table|json|ids|compact]
   op-cli.sh wp list-all <PROJECT_REF> [--status NAME] [--type NAME]
   op-cli.sh wp get <WP_ID> [summary|json]
-  op-cli.sh wp set-orchestration <WP_ID> [--difficulty VAL] [--specialization VAL]
-                                          [--agent VAL] [--tech-stack VAL]
-                                          [--automation VAL] [--gate VAL]
+  op-cli.sh wp set-orchestration <WP_ID> [--difficulty VAL] [--size VAL]
+                                          [--specialization VAL] [--agent VAL]
+                                          [--tech-stack VAL] [--automation VAL]
+                                          [--gate VAL]
   op-cli.sh wp set-orchestration-batch <TSV_FILE>
 
 Relations:
@@ -725,7 +729,7 @@ Examples:
   op-cli.sh wp list sentinels-hub --status "In progress" --type Task
   op-cli.sh wp list-all sentinels-hub --status "New"
   op-cli.sh wp get 1897
-  op-cli.sh wp set-orchestration 1897 --difficulty Medium --agent @gtd --gate G3
+  op-cli.sh wp set-orchestration 1897 --difficulty Medium --size M --agent @gtd --gate G3
   op-cli.sh relation create 1897 blocks 1899
   op-cli.sh relation check-blocked 1899
   op-cli.sh project list
