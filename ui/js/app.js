@@ -21,6 +21,7 @@ const App = {
       traceability: Traceability,
       queries: Queries,
       agents: Agents,
+      contracts: Contracts,
     };
   },
 
@@ -169,6 +170,31 @@ const DEMO_DATA = {
         branch: true,
         commits: true,
         pr: true,
+        evidence: false,
+        ledger: false,
+      }
+    },
+    {
+      id: 'CTR-agents-sak-20260304',
+      project: 'agents-sak',
+      gates: [
+        { name: 'G0', status: 'passed' },
+        { name: 'G1', status: 'passed' },
+        { name: 'G2', status: 'passed' },
+        { name: 'G3', status: 'active' },
+        { name: 'G4', status: 'pending' },
+        { name: 'G5', status: 'pending' },
+        { name: 'G6', status: 'pending' },
+        { name: 'G7', status: 'pending' },
+        { name: 'G8', status: 'pending' },
+        { name: 'G9', status: 'pending' },
+      ],
+      traceability: {
+        contract: true,
+        wp: true,
+        branch: true,
+        commits: true,
+        pr: false,
         evidence: false,
         ledger: false,
       }

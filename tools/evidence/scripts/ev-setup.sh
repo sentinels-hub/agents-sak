@@ -19,21 +19,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/ev-core.sh"
 
-# ─── Output helpers ───────────────────────────────────────────
+# ─── Output helpers (fallback if sak-core not loaded) ────────
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-CYAN='\033[0;36m'
-DIM='\033[2m'
-BOLD='\033[1m'
-NC='\033[0m'
-
-ok()      { echo -e "  ${GREEN}[OK]${NC} $*"; }
-fail()    { echo -e "  ${RED}[FAIL]${NC} $*"; }
-warn()    { echo -e "  ${YELLOW}[WARN]${NC} $*"; }
-info()    { echo -e "  ${CYAN}[INFO]${NC} $*"; }
-section() { echo -e "\n${BOLD}═══ $* ═══${NC}"; }
+if ! declare -f ok &>/dev/null; then
+  RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'
+  CYAN='\033[0;36m'; DIM='\033[2m'; BOLD='\033[1m'; NC='\033[0m'
+  ok()      { echo -e "  ${GREEN}[OK]${NC} $*"; }
+  fail()    { echo -e "  ${RED}[FAIL]${NC} $*"; }
+  warn()    { echo -e "  ${YELLOW}[WARN]${NC} $*"; }
+  info()    { echo -e "  ${CYAN}[INFO]${NC} $*"; }
+  section() { echo -e "\n${BOLD}═══ $* ═══${NC}"; }
+fi
 
 # Counters
 CHECKS_PASSED=0

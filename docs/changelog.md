@@ -5,6 +5,73 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ---
 
+## [0.9.0-dev] — 2026-03-04
+
+### Added
+- `tests/smoke-test.sh` — Tests offline con journal mock (~50 assertions)
+  - Tests para sak-core, gh-core, ev-core, co-core, sak-trace, sak-gates, sak-metrics, sak-cli
+  - Syntax check de todos los scripts
+  - Mock journal con bundles, ledger y audit trail
+- `docs/api-reference.md` — Referencia completa de funciones y comandos de cada módulo
+
+### Changed
+- `docs/roadmap.md` — v0.6.0-v0.9.0 marcados como completados
+- `docs/architecture.md` — Añadida capa sak-core al diagrama
+- `README.md` — Actualizado a v0.9.0, link a API reference
+
+---
+
+## [0.8.0-dev] — 2026-03-04
+
+### Added
+- `tools/scripts/sak-metrics.sh` — Métricas cross-tool
+  - `summary` — Control coverage, gate pass rate, chain completeness, bundle count, ledger health, audit density
+  - `gaps` — Identifica gaps en gates, evidence y controls
+  - `coverage` — Coverage por framework (tabla + porcentajes)
+  - Output JSON + tabla
+
+---
+
+## [0.7.0-dev] — 2026-03-04
+
+### Added
+- `tools/scripts/sak-gates.sh` — Gate Validation
+  - `check-ready` — Pre-flight check de prerequisites por gate
+  - `check-complete` — Verificación post-gate
+  - `status` — Tabla de todos los gates (PASS/NC/--)
+  - `next` — Sugiere el próximo gate a completar
+  - Prerequisites embebidos: G0 (contract) → G4 (+branch) → G8 (+bundle) → G9 (+all controls)
+
+---
+
+## [0.6.0-dev] — 2026-03-04
+
+### Added
+- `tools/scripts/sak-core.sh` — Funciones compartidas cross-tool
+  - Timestamps: iso_timestamp, compact_timestamp, numeric_timestamp
+  - Output helpers: ok, fail, warn, info, section
+  - Require checks: require_command, require_jq, require_python3, require_git
+  - Validators: contract_id_validate, journal_path_resolve, sak_root
+- `tools/scripts/sak-cli.sh` — CLI unificado
+  - Router: sak op|gh|ev|co|trace|gates|metrics
+  - Comandos propios: version, status
+- `tools/scripts/sak-trace.sh` — E2E Traceability Verification
+  - 10 checks: contract format, audit trail, gates coverage, bundles, bundle integrity, ledger chain, ledger linkage, branch naming, commit format, compliance score
+  - API-dependent checks → [SKIP] sin error
+- `ui/js/components/contracts.js` — Vista unificada por contrato
+  - Gate pipeline, trace chain, compliance/evidence/ledger scores
+  - Gate detail table con agentes y descripciones
+
+### Changed
+- `tools/evidence/scripts/ev-core.sh` — Source sak-core.sh con fallback para timestamps
+- `tools/compliance/scripts/co-core.sh` — Source sak-core.sh con fallback para timestamps
+- `tools/evidence/scripts/ev-setup.sh` — Source sak-core.sh con fallback para output helpers
+- `tools/compliance/scripts/co-setup.sh` — Source sak-core.sh con fallback para output helpers
+- `ui/index.html` — Nav item "Contracts" en Orchestration, script tag contracts.js
+- `ui/js/app.js` — Registrada vista contracts, añadido contrato CTR-agents-sak-20260304
+
+---
+
 ## [0.5.0-dev] — 2026-03-04
 
 ### Added

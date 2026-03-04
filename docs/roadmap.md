@@ -49,60 +49,27 @@
 
 ---
 
-## v0.6.0 — Cross-Tool Integration (próximo)
+### v0.6.0 — Cross-Tool Integration
+- [x] `tools/scripts/sak-core.sh` — Funciones compartidas cross-tool (timestamps, validators, output helpers)
+- [x] `tools/scripts/sak-cli.sh` — CLI unificado: `sak op|gh|ev|co|trace|gates|metrics|version|status`
+- [x] `tools/scripts/sak-trace.sh` — Verificación E2E traceability (10 checks)
+- [x] `ui/js/components/contracts.js` — Vista unificada por contrato (gate pipeline, trace chain, compliance)
+- [x] Modificaciones ev-core/co-core/ev-setup/co-setup para source sak-core.sh con fallback
 
-### Objetivos
-- Pipeline end-to-end: OP → GitHub → Evidence → Compliance → Ledger
-- Trazabilidad completa verificable entre herramientas
-- Comandos de integración cruzada
+### v0.7.0 — Gate Validation
+- [x] `tools/scripts/sak-gates.sh` — Validación de gates (check-ready, check-complete, status, next)
+- [x] Prerequisites por gate (G0-G9) con verificación de dependencias
+- [x] Detección automática del próximo gate a completar
 
-### Entregables
-- [ ] `sak-orchestrator.sh` — Orquestador que coordina las 4 tools
-- [ ] Traceability check end-to-end (WP → branch → PR → bundle → ledger → audit)
-- [ ] Dashboard UI: vista unificada de estado por contrato
-- [ ] Métricas de trazabilidad (≥95% target)
+### v0.8.0 — Analytics
+- [x] `tools/scripts/sak-metrics.sh` — Métricas cross-tool (summary, gaps, coverage)
+- [x] Control coverage, gate pass rate, chain completeness, ledger health
+- [x] Output JSON + tabla
 
----
-
-## v0.7.0 — Agent Runtime Hooks
-
-### Objetivos
-- Hooks para que sentinels-agents consuma SAK de forma nativa
-- Entry points claros por gate para cada agente
-- Configuración por proyecto exportable
-
-### Entregables
-- [ ] `hooks/` — Entry points por gate (gate-entry.sh, gate-exit.sh)
-- [ ] Config exporter: genera configuración de agente desde OP
-- [ ] Validación pre-gate (verifica prerequisites antes de ejecutar)
-- [ ] Integración documentada con sentinels-agents
-
----
-
-## v0.8.0 — Analytics & Reporting
-
-### Objetivos
-- Métricas históricas, KPIs, reports automáticos
-- Dashboard con gráficos de progreso, velocity, lead time
-
-### Entregables
-- [ ] `tools/analytics/` — Métricas históricas
-- [ ] UI: gráficos de velocity, lead time, gate pass rate
-- [ ] Reports periódicos automáticos (sprint summary, compliance status)
-
----
-
-## v0.9.0 — Production Ready
-
-### Objetivos
-- QA final, refactorización, documentación completa
-- Todo listo para uso en producción por la triada (agents, lighthouse, journal)
-
-### Entregables
-- [ ] QA review de todos los scripts (edge cases, error handling)
-- [ ] Documentación completa de API de cada tool
-- [ ] E2E tests automatizados
-- [ ] Release notes v1.0.0-rc
+### v0.9.0 — QA & Docs
+- [x] `tests/smoke-test.sh` — Tests offline con journal mock (~50 assertions)
+- [x] `docs/api-reference.md` — Referencia completa de funciones y comandos
+- [x] Documentación actualizada (roadmap, changelog, architecture, README)
 
 ---
 

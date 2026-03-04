@@ -10,6 +10,10 @@
 #   source "$SCRIPT_DIR/ev-core.sh"
 # ─────────────────────────────────────────────────────────────
 
+# Source sak-core.sh if available (shared timestamps, validators, output helpers)
+_SAK_CORE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../scripts" 2>/dev/null && pwd)/sak-core.sh"
+if [ -f "$_SAK_CORE" ]; then source "$_SAK_CORE"; fi
+
 # ─── SHA-256 ──────────────────────────────────────────────────
 
 # Cross-platform SHA-256 of a file
@@ -36,22 +40,13 @@ sha256_string() {
   fi
 }
 
-# ─── Timestamps ──────────────────────────────────────────────
+# ─── Timestamps (fallback if sak-core not loaded) ───────────
 
-# ISO 8601 UTC timestamp
-iso_timestamp() {
-  date -u +"%Y-%m-%dT%H:%M:%SZ"
-}
-
-# Compact timestamp for IDs: 20260304T143000Z
-compact_timestamp() {
-  date -u +"%Y%m%dT%H%M%SZ"
-}
-
-# Numeric timestamp for entry IDs: 20260304143000
-numeric_timestamp() {
-  date -u +"%Y%m%d%H%M%S"
-}
+if ! declare -f iso_timestamp &>/dev/null; then
+  iso_timestamp()      { date -u +"%Y-%m-%dT%H:%M:%SZ"; }
+  compact_timestamp()  { date -u +"%Y%m%dT%H%M%SZ"; }
+  numeric_timestamp()  { date -u +"%Y%m%d%H%M%S"; }
+fi
 
 # ─── Bundle ID generation ────────────────────────────────────
 # Format: bundle-<YYYYMMDDTHHMMSSz>-<contract_id_lower>

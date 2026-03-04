@@ -54,10 +54,15 @@ agents-sak/
 
 | Herramienta | Estado | Descripción |
 |-------------|--------|-------------|
-| `openproject` | v0.3.0 | Gestión de Work Packages, orquestación, saved queries, CLI modular |
+| `openproject` | v0.5.0 | Gestión de Work Packages, orquestación, saved queries, CLI modular |
 | `github` | v0.4.0 | Branches, PRs, commits, labels de governance, trazabilidad Git↔OP |
-| `evidence` | v0.4.0 | Bundles SHA-256, ledger append-only, verificación de cadena, redaction |
-| `compliance` | v0.4.0 | ISO 27001, ISO 9001, SOC 2, ENS Alta — controles, mapping, audit trail |
+| `evidence` | v0.6.0 | Bundles SHA-256, ledger append-only, verificación de cadena, redaction |
+| `compliance` | v0.6.0 | ISO 27001, ISO 9001, SOC 2, ENS Alta — controles, mapping, audit trail |
+| `sak-core` | v0.6.0 | Funciones compartidas cross-tool (timestamps, validators, output helpers) |
+| `sak-cli` | v0.6.0 | CLI unificado: `sak op\|gh\|ev\|co\|trace\|gates\|metrics` |
+| `sak-trace` | v0.6.0 | Verificación E2E traceability (10 checks offline) |
+| `sak-gates` | v0.7.0 | Gate validation: check-ready, check-complete, status, next |
+| `sak-metrics` | v0.8.0 | Analytics cross-tool: summary, gaps, coverage |
 
 ## Relación con el ecosistema
 
@@ -76,6 +81,13 @@ sentinels-agents      →  Ejecuta workflows usando lighthouse + sak (el runtime
 - `sha256sum` o `shasum` — para tool Evidence
 - Variables de entorno: `OPENPROJECT_URL`, `OPENPROJECT_API_TOKEN`
 - Sin dependencias externas para la UI (HTML/CSS/JS puro)
+
+## Documentación
+
+- [Architecture](docs/architecture.md) — Principios de diseño y capas del sistema
+- [API Reference](docs/api-reference.md) — Referencia completa de funciones y comandos
+- [Roadmap](docs/roadmap.md) — Versiones completadas y planificadas
+- [Changelog](docs/changelog.md) — Historial de cambios
 
 ## Licencia
 

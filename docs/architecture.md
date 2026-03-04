@@ -15,6 +15,12 @@
 │                   UI Web                     │  ← Dashboard transversal
 │         (HTML/CSS/JS — zero deps)            │     para todas las herramientas
 ├─────────────────────────────────────────────┤
+│          tools/scripts/ (sak-*)              │  ← Capa cross-tool
+│  ┌──────────┬──────────┬──────────┬────────┐│
+│  │sak-core  │sak-cli   │sak-trace │sak-gate││
+│  │(shared)  │(router)  │(E2E)    │(valid.) ││
+│  └──────────┴──────────┴──────────┴────────┘│
+├─────────────────────────────────────────────┤
 │              tools/<herramienta>/             │  ← Toolkit por dominio
 │  ┌──────────┬──────────┬──────────┬────────┐│
 │  │ catalog/ │ schemas/ │templates/│scripts/││
