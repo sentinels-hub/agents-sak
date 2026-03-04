@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agents-sak/openproject/query",
+  "title": "OpenProject Saved Query — Sentinels Validation Schema",
+  "description": "Schema para definir queries (colas de trabajo) que los agentes usan como punto de entrada para saber qué ejecutar.",
+  "type": "object",
+  "required": ["name", "agent", "gate", "filters"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 255,
+      "description": "Nombre descriptivo de la query. Convención: '@agent — Descripción'"
+    },
+    "agent": {
+      "type": "string",
+      "enum": ["@jarvis", "@inception", "@gtd", "@morpheus", "@agent-smith", "@oracle", "@pepper", "@ariadne"],
+      "description": "Agente propietario de esta query"
+    },
+    "gate": {
+      "type": "string",
+      "enum": ["G0", "G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "transversal"],
+      "description": "Gate asociado a esta query"
+    },
+    "purpose": {
+      "type": "string",
+      "enum": ["work-queue", "monitoring", "escalation", "reporting"],
+      "description": "Tipo de query: cola de trabajo, monitoreo, escalación o reporte"
+    },
+    "public": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si la query es visible para todos los usuarios"
+    },
+    "starred": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si la query es favorita (acceso rápido)"
+    },
+    "project": {
+      "type": ["string", "null"],
+      "description": "Proyecto específico o null para query global"
+    },
+    "filters": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["field", "operator"],
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "Campo a filtrar (status, type, assignee, customFieldN, etc.)"
+          },
+          "operator": {
+            "type": "string",
+            "enum": ["=", "!", ">=", "<=", "t-", "t+", "*", "!*", "**", "=d", "<>d", "~", "!~", "o", "c"],
+            "description": "Operador de filtro"
+          },
+          "values": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Valores del filtro. Vacío para operadores sin valores (*,!*,o,c)"
+          }
+        }
+      },
+      "description": "Filtros de la query (combinados con AND)"
+    },
+    "sortBy": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": { "type": "string" },
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "description": "Ordenación: [[campo, dirección], ...]. Ejemplo: [[\"priority\",\"desc\"]]"
+    },
+    "groupBy": {
+      "type": ["string", "null"],
+      "description": "Campo de agrupación (status, type, priority, assignee, version, project)"
+    },
+    "columns": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Columnas visibles en resultado"
+    }
+  }
+}

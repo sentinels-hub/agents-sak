@@ -19,6 +19,8 @@ const App = {
       backlog: Backlog,
       roadmap: Roadmap,
       traceability: Traceability,
+      queries: Queries,
+      agents: Agents,
     };
   },
 

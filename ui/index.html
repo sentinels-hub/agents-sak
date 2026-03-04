@@ -50,6 +50,20 @@
       </div>
 
       <div class="sidebar__section">
+        <div class="sidebar__section-title">Orchestration</div>
+        <ul class="sidebar__nav">
+          <li class="sidebar__nav-item" data-view="queries">
+            <span class="sidebar__nav-icon">[?]</span>
+            Work Queues
+          </li>
+          <li class="sidebar__nav-item" data-view="agents">
+            <span class="sidebar__nav-icon">[@]</span>
+            Agents
+          </li>
+        </ul>
+      </div>
+
+      <div class="sidebar__section">
         <div class="sidebar__section-title">Tools</div>
         <ul class="sidebar__nav">
           <li class="sidebar__nav-item" style="opacity: 0.4; cursor: not-allowed;">
@@ -71,7 +85,7 @@
       </div>
 
       <div class="sidebar__section">
-        <div class="sidebar__section-title">Agents</div>
+        <div class="sidebar__section-title">Agent Roster</div>
         <ul class="sidebar__nav" style="font-size: 11px;">
           <li style="padding: 4px 16px; color: var(--hud-accent-green);">@jarvis <span style="color: var(--hud-text-dim);">G0,G1,G8,G9</span></li>
           <li style="padding: 4px 16px; color: var(--hud-accent);">@inception <span style="color: var(--hud-text-dim);">G2</span></li>
@@ -96,6 +110,8 @@
   <script src="js/components/backlog.js"></script>
   <script src="js/components/roadmap.js"></script>
   <script src="js/components/traceability.js"></script>
+  <script src="js/components/queries.js"></script>
+  <script src="js/components/agents.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

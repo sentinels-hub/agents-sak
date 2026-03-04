@@ -32,7 +32,64 @@ Epic                    (objetivo macro — semanas/meses)
 | `target_branch` | custom | Branch objetivo | feat/wp-1837-auth |
 | `contract_id` | custom | ID del contrato asociado | CTR-my-project-20260302 |
 
-## Campos custom recomendados
+## Campos de scheduling (nativos OP)
+
+| Campo | Tipo | R/W | Descripción | Ejemplo |
+|-------|------|-----|-------------|---------|
+| `startDate` | date | RW | Fecha de inicio | 2026-03-10 |
+| `dueDate` | date | RW | Fecha de vencimiento | 2026-03-14 |
+| `duration` | duration | RW | Duración planificada | P5D (5 días) |
+| `derivedStartDate` | date | R | Calculada desde hijos | Automático |
+| `derivedDueDate` | date | R | Calculada desde hijos | Automático |
+| `percentageDone` | integer | RW | Progreso manual (0-100) | 60 |
+| `derivedPercentageDone` | integer | R | Calculado desde hijos | Automático |
+| `remainingTime` | duration | RW | Tiempo restante estimado | PT3H |
+| `spentTime` | duration | R | Tiempo registrado real | PT5H |
+| `scheduleManually` | boolean | RW | Bypass de scheduling automático | false |
+
+> **Tip**: Si un Epic tiene hijos, `derivedStartDate` y `derivedDueDate` se calculan automáticamente desde los dates de los hijos. No asignar dates manualmente a padres con hijos.
+
+## Campos de orquestación (custom fields — configurar en admin)
+
+| Campo | Tipo | Valores | Quién lo asigna | Uso |
+|-------|------|---------|----------------|-----|
+| `Difficulty` | List | Trivial, Easy, Medium, Hard, Expert | @inception (G2) | Estimar complejidad para asignación |
+| `Specialization` | List | Frontend, Backend, Infra, Security, QA, Compliance, DevOps, Full-stack | @inception (G2) | Routing a agente con expertise correcto |
+| `Agent Assigned` | List | @jarvis, @inception, @gtd, @morpheus, @agent-smith, @oracle, @pepper, @ariadne | @inception (G2) o auto | Quién debe ejecutar este WP |
+| `Tech Stack` | List (multi) | HTML/CSS, JavaScript, Python, Bash, Docker, Terraform, Go, Rust, SQL | @inception (G2) | Tecnologías requeridas |
+| `Automation Level` | List | Full-auto, Semi-auto, Human-required | @inception (G2) | Grado de autonomía del agente |
+| `Gate Current` | List | G0, G1, G2, G3, G4, G5, G6, G7, G8, G9 | Automático | Gate activo para este WP |
+
+### Lógica de asignación automática
+
+```
+Si Specialization=Security → Agent Assigned=@morpheus
+Si Specialization=QA       → Agent Assigned=@oracle
+Si Specialization=DevOps   → Agent Assigned=@pepper
+Si Specialization=Frontend AND Difficulty≤Medium → Agent Assigned=@gtd
+Si Specialization=Backend AND Difficulty=Expert → Agent Assigned=@gtd + Human-required
+Si Gate Current=G2 → Agent Assigned=@inception
+Si Gate Current=G5 → Agent Assigned=@agent-smith
+```
+
+### Cómo un agente usa estos campos
+
+```
+1. @gtd ejecuta query: "Mis tareas pendientes"
+2. Obtiene Task#1897 con:
+   - Difficulty: Medium
+   - Specialization: Frontend
+   - Tech Stack: [HTML/CSS, JavaScript]
+   - Automation Level: Full-auto
+   - Gate Current: G3
+3. @gtd sabe:
+   - Complejidad media → no necesita escalar
+   - Frontend con HTML/CSS + JS → sus herramientas estándar
+   - Full-auto → puede completar sin intervención humana
+   - Está en G3 → debe implementar y transicionar a Developed
+```
+
+## Campos custom de trazabilidad
 
 | Campo | Tipo | Cuándo se rellena | Ejemplo |
 |-------|------|-------------------|---------|
@@ -158,6 +215,61 @@ openproject-sync.sh delete-wp <WP_ID>
 5. **Commit naming**: `type(scope): description [WP#ID]`
 6. **No cerrar WPs sin evidencia** — G8 debe completarse antes de G9
 
+## Operaciones avanzadas
+
+### Consultar WPs (queries)
+
+```bash
+# Listar WPs de un proyecto con filtros
+GET /api/v3/projects/{id}/work_packages?filters=[
+  {"status":{"operator":"o","values":[]}},
+  {"type":{"operator":"=","values":["3"]}}
+]&sortBy=[["priority","desc"]]&pageSize=50
+
+# WPs asignados a un agente específico (via custom field)
+GET /api/v3/projects/{id}/work_packages?filters=[
+  {"customField42":{"operator":"=","values":["@gtd"]}},
+  {"status":{"operator":"=","values":["7","14"]}}
+]
+
+# WPs sin estimar
+GET /api/v3/projects/{id}/work_packages?filters=[
+  {"estimatedTime":{"operator":"!*","values":[]}}
+]
+
+# WPs vencidos (dueDate en el pasado)
+GET /api/v3/projects/{id}/work_packages?filters=[
+  {"dueDate":{"operator":"t-","values":["0"]}},
+  {"status":{"operator":"o","values":[]}}
+]
+```
+
+### Operaciones silenciosas (batch)
+
+```bash
+# Actualizar WP sin disparar notificaciones
+PATCH /api/v3/work_packages/{id}?notify=false
+{
+  "status": { "href": "/api/v3/statuses/7" }
+}
+```
+
+> **Regla**: Usar `notify=false` cuando un agente hace múltiples transiciones en batch. Evita flooding de emails/notificaciones.
+
+### Available assignees
+
+```bash
+# Ver quién puede ser asignado a un WP
+GET /api/v3/work_packages/{id}/available_assignees
+```
+
+### Available relation candidates
+
+```bash
+# Ver WPs candidatos para crear relación
+GET /api/v3/work_packages/{id}/available_relation_candidates?query=auth
+```
+
 ## Errores comunes y soluciones
 
 | Error | Causa | Solución |
@@ -166,3 +278,6 @@ openproject-sync.sh delete-wp <WP_ID>
 | No se puede asignar usuario | Falta rol assignee en el proyecto | Pedir config manual a admin OP |
 | Versión no encontrada | Versión compartida entre proyectos | Usar `list-versions` para verificar |
 | Descripción vacía tras update | Markdown mal escapado | Usar heredoc o file input |
+| 409 Conflict en PATCH | Lock version desactualizada | Re-leer WP para obtener lockVersion fresco |
+| 422 al crear relación | Ciclo detectado o relación duplicada | Verificar grafo de dependencias antes |
+| Dates no se actualizan | WP tiene `scheduleManually=true` | Cambiar a false para scheduling automático |

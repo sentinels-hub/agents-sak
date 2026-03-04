@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agents-sak/openproject/project",
+  "title": "OpenProject Project — Sentinels Validation Schema",
+  "description": "Schema para validar datos de proyecto como capa de orquestación.",
+  "type": "object",
+  "required": ["name", "identifier"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 255,
+      "description": "Nombre visible del proyecto"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "minLength": 3,
+      "maxLength": 100,
+      "description": "Slug URL del proyecto"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripción en Markdown del proyecto"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si el proyecto está activo"
+    },
+    "public": {
+      "type": "boolean",
+      "default": false,
+      "description": "Visibilidad del proyecto"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["on_track", "at_risk", "in_trouble"],
+      "description": "Estado general del proyecto"
+    },
+    "statusExplanation": {
+      "type": "string",
+      "description": "Resumen ejecutivo del estado con métricas"
+    },
+    "parent_id": {
+      "type": ["integer", "null"],
+      "description": "ID del proyecto padre (null para top-level)"
+    },
+    "tech_stack": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["HTML/CSS", "JavaScript", "TypeScript", "Python", "Bash", "Docker", "Terraform", "Go", "Rust", "SQL", "YAML"]
+      },
+      "description": "Tecnologías del proyecto (custom field)"
+    },
+    "project_type": {
+      "type": "string",
+      "enum": ["Product", "Library", "Governance", "Infrastructure", "Research", "Toolkit"],
+      "description": "Naturaleza del proyecto (custom field)"
+    },
+    "lead_agent": {
+      "type": "string",
+      "enum": ["@jarvis", "@inception", "@gtd", "@morpheus", "@agent-smith", "@oracle", "@pepper", "@ariadne"],
+      "description": "Agente principal responsable (custom field)"
+    },
+    "automation_tier": {
+      "type": "string",
+      "enum": ["Full-auto", "Semi-auto", "Human-heavy"],
+      "description": "Nivel de automatización (custom field)"
+    },
+    "compliance_scope": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["ISO 27001", "ISO 9001", "ISO 14001", "ISO 42001", "SOC2", "ENS Alta"]
+      },
+      "description": "Frameworks de compliance aplicables (custom field)"
+    },
+    "repository_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL del repositorio GitHub"
+    },
+    "lighthouse_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Versión del protocolo Sentinels aplicada"
+    }
+  }
+}
