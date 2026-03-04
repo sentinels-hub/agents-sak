@@ -17,11 +17,29 @@ Los agentes Sentinels necesitan herramientas bien definidas, documentadas y vali
 ```
 agents-sak/
 ├── tools/                    # Herramientas por dominio
-│   └── openproject/          # Primera herramienta: OpenProject
-│       ├── catalog/          # Catálogo de operaciones
-│       ├── schemas/          # Schemas de validación JSON
-│       ├── templates/        # Templates para agentes
-│       └── scripts/          # CLI modular
+│   ├── openproject/          # Gestión de Work Packages, orquestación
+│   │   ├── catalog/          # Catálogo de operaciones
+│   │   ├── schemas/          # Schemas de validación JSON
+│   │   ├── templates/        # Templates para agentes
+│   │   ├── playbooks/        # Playbooks por agente
+│   │   └── scripts/          # CLI modular (op-core, op-cli, op-setup)
+│   ├── github/               # GitHub: branches, PRs, commits, CI/CD
+│   │   ├── catalog/          # repos, branches, PRs, commits, issues, actions
+│   │   ├── schemas/          # branch, commit, PR schemas
+│   │   ├── templates/        # PR description, commit message
+│   │   └── scripts/          # CLI modular (gh-core, gh-cli)
+│   ├── evidence/             # Bundles de evidencia, ledger, verificación
+│   │   ├── catalog/          # bundles, ledger, verification, redaction
+│   │   ├── schemas/          # bundle, ledger-entry schemas (espejo Lighthouse)
+│   │   ├── templates/        # bundle manifest, release notes
+│   │   ├── playbooks/        # Guías operativas: ariadne (G8), jarvis (G8/G9)
+│   │   └── scripts/          # CLI modular (ev-core, ev-cli, ev-setup)
+│   └── compliance/           # Compliance: frameworks, controles, auditoría
+│       ├── catalog/          # frameworks, controls, mapping, audit-trail
+│       ├── schemas/          # control, audit-entry schemas
+│       ├── templates/        # control checklist, audit report
+│       ├── playbooks/        # Guías operativas: jarvis (G9), oracle (G6)
+│       └── scripts/          # CLI modular (co-core, co-cli, co-setup)
 ├── ui/                       # Web UI transversal (HTML/CSS/JS)
 │   ├── index.html
 │   ├── css/
@@ -36,7 +54,10 @@ agents-sak/
 
 | Herramienta | Estado | Descripción |
 |-------------|--------|-------------|
-| `openproject` | 🟢 v0.1.0 | Gestión de Work Packages, versiones, backlogs, roadmaps, trazabilidad |
+| `openproject` | v0.3.0 | Gestión de Work Packages, orquestación, saved queries, CLI modular |
+| `github` | v0.4.0 | Branches, PRs, commits, labels de governance, trazabilidad Git↔OP |
+| `evidence` | v0.4.0 | Bundles SHA-256, ledger append-only, verificación de cadena, redaction |
+| `compliance` | v0.4.0 | ISO 27001, ISO 9001, SOC 2, ENS Alta — controles, mapping, audit trail |
 
 ## Relación con el ecosistema
 
@@ -51,6 +72,8 @@ sentinels-agents      →  Ejecuta workflows usando lighthouse + sak (el runtime
 ## Requisitos
 
 - `bash` 4+, `curl`, `jq`
+- `gh` (GitHub CLI) — para tool GitHub
+- `sha256sum` o `shasum` — para tool Evidence
 - Variables de entorno: `OPENPROJECT_URL`, `OPENPROJECT_API_TOKEN`
 - Sin dependencias externas para la UI (HTML/CSS/JS puro)
 

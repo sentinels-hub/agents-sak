@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinels-hub.github.io/agents-sak/compliance/control.schema.json",
+  "title": "Compliance Control",
+  "description": "Schema for a compliance control definition in Sentinels protocol",
+  "type": "object",
+  "required": [
+    "control_id",
+    "name",
+    "description",
+    "framework",
+    "gates"
+  ],
+  "properties": {
+    "control_id": {
+      "type": "string",
+      "description": "Unique control identifier",
+      "examples": ["SEN-001", "change_control", "access_control"]
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable control name",
+      "examples": ["Identity verification", "Change Control"]
+    },
+    "description": {
+      "type": "string",
+      "description": "What this control verifies"
+    },
+    "framework": {
+      "type": "string",
+      "enum": ["ens_alto", "iso_27001", "iso_9001", "soc2", "sentinels"],
+      "description": "Framework this control belongs to"
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^G[0-9]$"
+      },
+      "minItems": 1,
+      "description": "Gates where this control is verified"
+    },
+    "agent": {
+      "type": "string",
+      "pattern": "^@[a-z-]+$",
+      "description": "Primary agent responsible for verification",
+      "examples": ["@jarvis", "@morpheus", "@agent-smith"]
+    },
+    "evidence_required": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Types of evidence required to satisfy this control",
+      "examples": [["Code review with scoring", "PR approval"]]
+    },
+    "references": {
+      "type": "object",
+      "description": "External framework references",
+      "properties": {
+        "iso_27001": {
+          "type": "string",
+          "description": "ISO 27001 clause reference",
+          "examples": ["A.14.2.2"]
+        },
+        "iso_9001": {
+          "type": "string",
+          "description": "ISO 9001 clause reference",
+          "examples": ["8.5.6"]
+        },
+        "soc2": {
+          "type": "string",
+          "description": "SOC 2 criteria reference",
+          "examples": ["CC8.1"]
+        },
+        "ens": {
+          "type": "string",
+          "description": "ENS measure reference",
+          "examples": ["op.exp.6"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

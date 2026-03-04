@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinels.local/sentinels-protocol/v1/ledger-entry.schema.json",
+  "title": "Sentinels Ledger Entry v1.0",
+  "description": "Mirror of sentinels-lighthouse ledger-entry.schema.json. Validates ledger entries per Sentinels Protocol v1.0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "entry_id",
+    "recorded_at",
+    "repository",
+    "contract_id",
+    "bundle_manifest_path",
+    "bundle_sha256",
+    "previous_bundle_sha256"
+  ],
+  "properties": {
+    "protocol_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "entry_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{6,120}$",
+      "description": "Accepts both ledger-<ts>-<contract> (canonical) and LED-<seq> (legacy)"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^sentinels-[a-z0-9-]+$"
+    },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{4,80}$"
+    },
+    "bundle_manifest_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "bundle_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "previous_bundle_sha256": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        { "type": "null" }
+      ]
+    },
+    "actor_mapping_path": {
+      "type": "string"
+    },
+    "evidence_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

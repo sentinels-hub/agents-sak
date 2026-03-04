@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinels-hub.github.io/agents-sak/compliance/audit-entry.schema.json",
+  "title": "Audit Trail Entry",
+  "description": "Schema for a single entry in the compliance audit trail (JSONL format)",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "contract_id",
+    "gate",
+    "agent",
+    "action",
+    "controls",
+    "evidence_ref",
+    "result"
+  ],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of the action"
+    },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^CTR-[a-z0-9-]+-[0-9]{8}$",
+      "description": "Contract identifier",
+      "examples": ["CTR-sentinels-hub-20260302"]
+    },
+    "gate": {
+      "type": "string",
+      "pattern": "^G[0-9]$",
+      "description": "Gate where the action occurred",
+      "examples": ["G0", "G5", "G9"]
+    },
+    "agent": {
+      "type": "string",
+      "pattern": "^@[a-z-]+$",
+      "description": "Agent that performed the action",
+      "examples": ["@jarvis", "@agent-smith", "@oracle"]
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "control_verified",
+        "control_failed",
+        "non_conformity",
+        "corrective_action",
+        "risk_accepted",
+        "audit_completed"
+      ],
+      "description": "Type of compliance action"
+    },
+    "controls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "description": "Controls verified or affected by this action",
+      "examples": [["change_control", "secure_change_management", "SEN-005"]]
+    },
+    "evidence_ref": {
+      "type": "string",
+      "description": "Reference to the evidence supporting this action",
+      "examples": ["PR #42 — review approved", "Bundle BDL-sentinels-hub-003"]
+    },
+    "result": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "PARTIAL", "N/A"],
+      "description": "Result of the verification"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes or context"
+    }
+  },
+  "additionalProperties": false
+}

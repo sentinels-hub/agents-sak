@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinels.local/sentinels-protocol/v1/evidence-bundle.schema.json",
+  "title": "Sentinels Evidence Bundle v1.0",
+  "description": "Mirror of sentinels-lighthouse evidence-bundle.schema.json. Validates bundle manifests per Sentinels Protocol v1.0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "bundle_id",
+    "contract_id",
+    "generated_at",
+    "format",
+    "artifacts",
+    "bundle_sha256",
+    "previous_bundle_sha256"
+  ],
+  "properties": {
+    "protocol_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "bundle_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{6,120}$",
+      "description": "Accepts both bundle-<ts>-<contract> (canonical) and BDL-<repo>-<date>-<seq> (legacy)"
+    },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{4,80}$"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "format": {
+      "type": "string",
+      "enum": ["json", "jsonl"]
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "size_bytes"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "redacted": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "bundle_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "previous_bundle_sha256": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        { "type": "null" }
+      ]
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "opencode": {
+          "$ref": "#/$defs/sourceStatus"
+        },
+        "openproject": {
+          "$ref": "#/$defs/sourceStatus"
+        },
+        "github": {
+          "$ref": "#/$defs/sourceStatus"
+        }
+      }
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "patterns_applied": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "replacements": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sourceStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["available", "unavailable", "skipped"]
+        },
+        "detail": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

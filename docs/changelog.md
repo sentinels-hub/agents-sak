@@ -5,6 +5,36 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ---
 
+## [0.4.0-dev] — 2026-03-04
+
+### Added
+- `tools/github/` — Tool GitHub completa
+  - catalog/: repos, branches, pull-requests, commits, issues, actions
+  - schemas/: branch.schema.json, commit.schema.json, pr.schema.json
+  - templates/: pr-description.md, commit-message.md
+  - scripts/: gh-core.sh (funciones compartidas), gh-cli.sh (CLI modular)
+  - Comandos: branch create/validate/list, commit validate, pr create/list/link-wp
+  - Labels de governance (gate:G0-G9, agent:*), repo setup, traceability check
+- `tools/evidence/` — Tool Evidence completa
+  - catalog/: bundles, ledger, verification, redaction
+  - schemas/: bundle.schema.json, ledger-entry.schema.json
+  - templates/: bundle-manifest.md, release-notes.md
+  - scripts/: ev-core.sh (SHA-256, IDs, redaction), ev-cli.sh (CLI modular)
+  - Comandos: bundle create/verify/list, ledger append/verify/last/list, redact
+  - Hash chain integrity, cross-platform SHA-256
+- `tools/compliance/` — Tool Compliance completa
+  - catalog/: frameworks, controls, mapping, audit-trail
+  - schemas/: control.schema.json, audit-entry.schema.json
+  - templates/: control-checklist.md, audit-report.md
+  - scripts/: co-core.sh (registry embebido, scoring), co-cli.sh (CLI modular), co-setup.sh (setup)
+  - playbooks/: jarvis.md (G9 Compliance Audit), oracle.md (G6 QA Compliance Check)
+  - 4 frameworks: ISO 27001, ISO 9001, SOC 2, ENS Alta
+  - 24 controles (10 Lighthouse + 4 SOC 2 + 10 Sentinels-specific SEN-001 a SEN-010)
+  - Comandos: audit append/list/last/verify, control list/get/check, report checklist/audit, verify completeness/non-conformities
+  - Matriz gate→control→evidencia, audit trail JSONL, scoring por framework
+
+---
+
 ## [0.3.0-dev] — 2026-03-04
 
 ### Added

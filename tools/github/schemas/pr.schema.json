@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sentinels Pull Request",
+  "description": "Validates PR metadata for Sentinels governance",
+  "type": "object",
+  "required": ["title", "contract_id", "wp_id", "gate", "branch"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "pattern": "^(feat|fix|chore|docs|build|refactor|test)(\\([a-z0-9-]+\\))?: .+ \\[WP#[0-9]+\\]$",
+      "maxLength": 120
+    },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^CTR-[a-z0-9-]+-[0-9]{8}$"
+    },
+    "wp_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "gate": {
+      "type": "string",
+      "pattern": "^G[0-9]$"
+    },
+    "branch": {
+      "type": "string",
+      "pattern": "^(feat|fix|chore|docs|refactor|test)/wp-[0-9]+-[a-z0-9-]+$"
+    },
+    "base": {
+      "type": "string",
+      "default": "main"
+    },
+    "labels": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "reviewers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["@morpheus", "@agent-smith", "@oracle"]
+      }
+    },
+    "checks_required": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Status checks that must pass before merge"
+    }
+  }
+}

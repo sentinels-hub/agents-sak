@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sentinels Branch Name",
+  "description": "Validates branch naming convention for Sentinels repos",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^(feat|fix|chore|docs|refactor|test)/wp-[0-9]+-[a-z0-9-]+$",
+      "examples": [
+        "feat/wp-1897-oauth2-provider",
+        "fix/wp-1905-contrast-ratio",
+        "docs/wp-2010-api-reference"
+      ]
+    },
+    "wp_id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "OpenProject Work Package ID"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["feat", "fix", "chore", "docs", "refactor", "test"]
+    },
+    "base": {
+      "type": "string",
+      "default": "main",
+      "description": "Base branch to create from"
+    }
+  }
+}

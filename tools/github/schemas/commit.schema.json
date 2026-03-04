@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sentinels Commit Message",
+  "description": "Validates commit message format for Sentinels repos",
+  "type": "object",
+  "required": ["subject"],
+  "properties": {
+    "subject": {
+      "type": "string",
+      "pattern": "^(feat|fix|chore|docs|build|refactor|test)(\\([a-z0-9-]+\\))?: .+ \\[WP#[0-9]+\\]$",
+      "maxLength": 120,
+      "examples": [
+        "feat(auth): implement OAuth2 provider [WP#1897]",
+        "fix(hud): correct contrast ratio [WP#1899]",
+        "chore: update dependencies [WP#2001]"
+      ]
+    },
+    "body": {
+      "type": "string",
+      "description": "Optional extended description"
+    },
+    "wp_ids": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1 },
+      "minItems": 1,
+      "description": "Work Package IDs referenced"
+    },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^CTR-[a-z0-9-]+-[0-9]{8}$",
+      "description": "Contract ID if included in body"
+    },
+    "co_authors": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Co-Authored-By entries"
+    }
+  }
+}
