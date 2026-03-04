@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agents-sak/openproject/work-package",
+  "title": "OpenProject Work Package — Sentinels Validation Schema",
+  "description": "Schema para validar Work Packages antes de enviarlos a OpenProject API v3. Alineado con policy.yaml de sentinels-lighthouse.",
+  "type": "object",
+  "required": [
+    "subject",
+    "description",
+    "type",
+    "status",
+    "version",
+    "priority",
+    "estimatedTime"
+  ],
+  "properties": {
+    "subject": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 255,
+      "description": "Título descriptivo del Work Package"
+    },
+    "description": {
+      "type": "object",
+      "required": ["raw"],
+      "properties": {
+        "raw": {
+          "type": "string",
+          "minLength": 50,
+          "description": "Descripción en Markdown con secciones obligatorias"
+        },
+        "format": {
+          "type": "string",
+          "const": "markdown"
+        }
+      },
+      "description": "Descripción con secciones: ## Contexto, ## Plan, ## Trazabilidad Git, ## Verificacion"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["Epic", "Feature", "User story", "Task", "Bug", "Incident Story", "Milestone"],
+      "description": "Tipo del Work Package según jerarquía Sentinels"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "New",
+        "Ready",
+        "In specification",
+        "Specified",
+        "Confirmed",
+        "To be scheduled",
+        "Scheduled",
+        "In progress",
+        "Developed",
+        "In security analysis",
+        "In review",
+        "Verification",
+        "In testing",
+        "Tested",
+        "In deployment",
+        "Deployed",
+        "On hold",
+        "Test failed",
+        "Rejected",
+        "Done",
+        "Closed"
+      ],
+      "description": "Estado del WP según corporate_states de Lighthouse"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^v\\d+\\.\\d+\\.\\d+$",
+      "description": "Versión SemVer asignada (e.g., v0.1.0)"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["Immediate", "Urgent", "High", "Normal", "Low"],
+      "description": "Prioridad del WP"
+    },
+    "estimatedTime": {
+      "type": "string",
+      "pattern": "^PT\\d+(\\.\\d+)?H$",
+      "description": "Tiempo estimado en formato ISO 8601 duration (e.g., PT2H, PT0.5H)"
+    },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^CTR-[a-z0-9-]+-\\d{8}$",
+      "description": "ID del contrato. Obligatorio para User Story."
+    },
+    "risk_summary": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Resumen de riesgos identificados"
+    },
+    "mitigation": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Medidas de mitigación para los riesgos"
+    },
+    "target_branch": {
+      "type": "string",
+      "pattern": "^(feat|fix|chore|docs|build|refactor|test)/wp-\\d+-[a-z0-9-]+$",
+      "description": "Branch objetivo siguiendo convención Sentinels"
+    },
+    "parent_id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "ID del WP padre (para Tasks, Bugs)"
+    },
+    "github_pr": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL del Pull Request en GitHub"
+    },
+    "github_commit": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL del commit en GitHub"
+    },
+    "evidence_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL del bundle de evidencia"
+    },
+    "evidence_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 del bundle de evidencia"
+    },
+    "ledger_entry": {
+      "type": "string",
+      "description": "Referencia a la entrada en el ledger"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "type": { "const": "User story" } }
+      },
+      "then": {
+        "required": ["contract_id", "risk_summary", "mitigation", "target_branch"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "Task" } }
+      },
+      "then": {
+        "required": ["parent_id"]
+      }
+    }
+  ]
+}

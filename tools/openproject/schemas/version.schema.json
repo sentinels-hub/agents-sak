@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agents-sak/openproject/version",
+  "title": "OpenProject Version — Sentinels Validation Schema",
+  "description": "Schema para validar versiones/iteraciones antes de crearlas en OpenProject.",
+  "type": "object",
+  "required": ["name", "start_date", "end_date"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^v\\d+\\.\\d+\\.\\d+$",
+      "description": "Nombre SemVer de la versión (e.g., v0.1.0)"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio (YYYY-MM-DD)"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de fin (YYYY-MM-DD)"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Descripción del scope de la versión"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["open", "locked", "closed"],
+      "default": "open",
+      "description": "Estado de la versión"
+    },
+    "sharing": {
+      "type": "string",
+      "enum": ["none", "descendants", "hierarchy", "tree", "system"],
+      "default": "none",
+      "description": "Scope de compartición. Sentinels recomienda 'none' (una versión por proyecto)."
+    }
+  }
+}

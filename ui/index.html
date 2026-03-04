@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agents SAK — Sentinels Army Knife</title>
+  <link rel="stylesheet" href="css/hud.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header__logo">
+        <div class="header__logo-icon">S</div>
+        <div>
+          <div class="header__title">Agents SAK</div>
+          <div class="header__subtitle">Sentinels Army Knife</div>
+        </div>
+      </div>
+      <div class="header__status">
+        <span class="header__status-dot"></span>
+        <span>SYSTEM ONLINE</span>
+        <span style="color: var(--hud-text-dim);">|</span>
+        <span>v0.1.0</span>
+      </div>
+    </header>
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar__section">
+        <div class="sidebar__section-title">OpenProject</div>
+        <ul class="sidebar__nav">
+          <li class="sidebar__nav-item active" data-view="dashboard">
+            <span class="sidebar__nav-icon">[#]</span>
+            Dashboard
+          </li>
+          <li class="sidebar__nav-item" data-view="backlog">
+            <span class="sidebar__nav-icon">[=]</span>
+            Backlog
+          </li>
+          <li class="sidebar__nav-item" data-view="roadmap">
+            <span class="sidebar__nav-icon">[~]</span>
+            Roadmap
+          </li>
+          <li class="sidebar__nav-item" data-view="traceability">
+            <span class="sidebar__nav-icon">[&gt;]</span>
+            Traceability
+          </li>
+        </ul>
+      </div>
+
+      <div class="sidebar__section">
+        <div class="sidebar__section-title">Tools</div>
+        <ul class="sidebar__nav">
+          <li class="sidebar__nav-item" style="opacity: 0.4; cursor: not-allowed;">
+            <span class="sidebar__nav-icon">[G]</span>
+            GitHub
+            <span style="font-size: 9px; color: var(--hud-text-dim);">soon</span>
+          </li>
+          <li class="sidebar__nav-item" style="opacity: 0.4; cursor: not-allowed;">
+            <span class="sidebar__nav-icon">[E]</span>
+            Evidence
+            <span style="font-size: 9px; color: var(--hud-text-dim);">soon</span>
+          </li>
+          <li class="sidebar__nav-item" style="opacity: 0.4; cursor: not-allowed;">
+            <span class="sidebar__nav-icon">[C]</span>
+            Compliance
+            <span style="font-size: 9px; color: var(--hud-text-dim);">soon</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="sidebar__section">
+        <div class="sidebar__section-title">Agents</div>
+        <ul class="sidebar__nav" style="font-size: 11px;">
+          <li style="padding: 4px 16px; color: var(--hud-accent-green);">@jarvis <span style="color: var(--hud-text-dim);">G0,G1,G8,G9</span></li>
+          <li style="padding: 4px 16px; color: var(--hud-accent);">@inception <span style="color: var(--hud-text-dim);">G2</span></li>
+          <li style="padding: 4px 16px; color: var(--hud-accent-purple);">@gtd <span style="color: var(--hud-text-dim);">G3</span></li>
+          <li style="padding: 4px 16px; color: var(--hud-accent-yellow);">@morpheus <span style="color: var(--hud-text-dim);">G4</span></li>
+          <li style="padding: 4px 16px; color: var(--hud-accent-red);">@agent-smith <span style="color: var(--hud-text-dim);">G5</span></li>
+          <li style="padding: 4px 16px; color: var(--hud-accent);">@oracle <span style="color: var(--hud-text-dim);">G6</span></li>
+          <li style="padding: 4px 16px; color: var(--hud-accent-green);">@pepper <span style="color: var(--hud-text-dim);">G7</span></li>
+          <li style="padding: 4px 16px; color: var(--hud-accent-purple);">@ariadne <span style="color: var(--hud-text-dim);">G8</span></li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main" id="main-content">
+      <!-- Content rendered by JS -->
+    </main>
+  </div>
+
+  <!-- Scripts (order matters: components first, then app) -->
+  <script src="js/components/dashboard.js"></script>
+  <script src="js/components/backlog.js"></script>
+  <script src="js/components/roadmap.js"></script>
+  <script src="js/components/traceability.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

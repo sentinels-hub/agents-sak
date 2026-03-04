@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agents-sak/openproject/comment",
+  "title": "OpenProject Governance Comment — Sentinels Validation Schema",
+  "description": "Schema para validar comentarios de governance antes de publicarlos en OpenProject.",
+  "type": "object",
+  "required": ["agent", "version", "contract_id", "gate", "message"],
+  "properties": {
+    "agent": {
+      "type": "string",
+      "enum": ["jarvis", "inception", "gtd", "morpheus", "agent-smith", "oracle", "pepper", "ariadne"],
+      "description": "Nombre del agente que genera el comentario"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Versión del agente (SemVer sin 'v' prefix)"
+    },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^CTR-[a-z0-9-]+-\\d{8}$",
+      "description": "ID del contrato asociado"
+    },
+    "gate": {
+      "type": "string",
+      "enum": ["G0", "G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9"],
+      "description": "Gate del protocolo Sentinels"
+    },
+    "message": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 2000,
+      "description": "Mensaje descriptivo de la acción realizada"
+    }
+  },
+  "examples": [
+    {
+      "agent": "gtd",
+      "version": "0.3.0",
+      "contract_id": "CTR-sentinels-hub-20260302",
+      "gate": "G3",
+      "message": "Implementation complete — 8 commits, 15/15 tasks developed"
+    }
+  ]
+}
