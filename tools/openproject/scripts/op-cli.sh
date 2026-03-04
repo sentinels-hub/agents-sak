@@ -10,170 +10,11 @@ set -euo pipefail
 # Requiere:
 #   OPENPROJECT_URL="https://sentinels.openproject.com"
 #   OPENPROJECT_API_TOKEN="xxxx"
-#   jq (para parsing JSON)
+#   jq, python3
 # ─────────────────────────────────────────────────────────────
 
-OPENPROJECT_URL="${OPENPROJECT_URL:-}"
-OPENPROJECT_API_TOKEN="${OPENPROJECT_API_TOKEN:-}"
-OPENPROJECT_API_CONNECT_TIMEOUT="${OPENPROJECT_API_CONNECT_TIMEOUT:-10}"
-OPENPROJECT_API_MAX_TIME="${OPENPROJECT_API_MAX_TIME:-60}"
-OPENPROJECT_API_MAX_RETRIES="${OPENPROJECT_API_MAX_RETRIES:-5}"
-OPENPROJECT_API_RETRY_BASE_SECONDS="${OPENPROJECT_API_RETRY_BASE_SECONDS:-1}"
-
-# ─── Core ─────────────────────────────────────────────────────
-
-require_env() {
-  if [ -z "$OPENPROJECT_URL" ] || [ -z "$OPENPROJECT_API_TOKEN" ]; then
-    echo "ERROR: OPENPROJECT_URL y OPENPROJECT_API_TOKEN son requeridos." >&2
-    exit 1
-  fi
-}
-
-api() {
-  local method="$1"
-  local path="$2"
-  local data="${3:-}"
-  local body_file http_code
-  local attempt=1
-  local sleep_seconds="$OPENPROJECT_API_RETRY_BASE_SECONDS"
-
-  body_file="$(mktemp)"
-
-  while true; do
-    if [ -n "$data" ]; then
-      http_code="$(curl -sS --connect-timeout "$OPENPROJECT_API_CONNECT_TIMEOUT" \
-        --max-time "$OPENPROJECT_API_MAX_TIME" \
-        -o "$body_file" -w "%{http_code}" \
-        -X "$method" \
-        -u "apikey:$OPENPROJECT_API_TOKEN" \
-        -H "Content-Type: application/json" \
-        -d "$data" \
-        "$OPENPROJECT_URL$path" 2>/dev/null || echo "000")"
-    else
-      http_code="$(curl -sS --connect-timeout "$OPENPROJECT_API_CONNECT_TIMEOUT" \
-        --max-time "$OPENPROJECT_API_MAX_TIME" \
-        -o "$body_file" -w "%{http_code}" \
-        -X "$method" \
-        -u "apikey:$OPENPROJECT_API_TOKEN" \
-        -H "Content-Type: application/json" \
-        "$OPENPROJECT_URL$path" 2>/dev/null || echo "000")"
-    fi
-
-    if [[ "$http_code" =~ ^2 ]]; then
-      cat "$body_file"
-      rm -f "$body_file"
-      return 0
-    fi
-
-    if { [ "$http_code" = "429" ] || [ "$http_code" = "000" ] || [[ "$http_code" =~ ^5 ]]; } && [ "$attempt" -lt "$OPENPROJECT_API_MAX_RETRIES" ]; then
-      echo "WARN: API $method $path → HTTP $http_code, retry $attempt/$OPENPROJECT_API_MAX_RETRIES in ${sleep_seconds}s" >&2
-      sleep "$sleep_seconds"
-      sleep_seconds=$((sleep_seconds * 2))
-      attempt=$((attempt + 1))
-      continue
-    fi
-
-    echo "ERROR: API $method $path → HTTP $http_code" >&2
-    cat "$body_file" >&2
-    rm -f "$body_file"
-    return 1
-  done
-}
-
-# URL-encode a string
-urlencode() {
-  python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$1"
-}
-
-# ─── Field resolution (cache-backed) ─────────────────────────
-
-FIELD_CACHE_TTL="${FIELD_CACHE_TTL:-86400}"
-
-_field_cache_path() {
-  if [ -n "${SENTINELS_DIR:-}" ]; then
-    echo "$SENTINELS_DIR/field-mapping.json"
-    return 0
-  fi
-  local git_root
-  git_root="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
-  if [ -n "$git_root" ]; then
-    echo "$git_root/.sentinels/field-mapping.json"
-  else
-    echo "${HOME}/.sentinels/field-mapping.json"
-  fi
-}
-
-# Resolve a custom field name → customFieldN key
-# Uses WP schema + cache for performance
-resolve_field() {
-  local project_ref="$1"
-  local type_id="$2"
-  local field_name="$3"
-
-  local cache_path cache_key
-  cache_path="$(_field_cache_path)"
-  cache_key="${project_ref}-${type_id}"
-
-  # Check cache
-  if [ -f "$cache_path" ]; then
-    local cached
-    cached="$(python3 -c "
-import json,sys,time
-try:
-    cache = json.load(open('$cache_path'))
-    entry = cache.get('$cache_key', {})
-    if entry and time.time() - entry.get('ts', 0) < $FIELD_CACHE_TTL:
-        target = '$field_name'.strip().lower()
-        for name, info in entry.get('fields', {}).items():
-            if name == target:
-                print(info['key'])
-                sys.exit(0)
-except: pass
-print('')
-" 2>/dev/null || echo "")"
-    if [ -n "$cached" ]; then
-      echo "$cached"
-      return 0
-    fi
-  fi
-
-  # Fetch schema and resolve
-  local schema_json
-  schema_json="$(api GET "/api/v3/work_packages/schemas/${project_ref}-${type_id}")"
-
-  local result
-  result="$(echo "$schema_json" | python3 -c "
-import json,sys,re,time,os
-
-schema = json.load(sys.stdin)
-target = '$field_name'.strip().lower()
-result = ''
-fields = {}
-
-for key, val in schema.items():
-    if re.match(r'customField\d+$', key):
-        name = str(val.get('name', '')).strip().lower()
-        if name:
-            fields[name] = {'key': key, 'type': val.get('type', 'unknown')}
-            if name == target:
-                result = key
-
-# Update cache
-cache_path = '$cache_path'
-try:
-    cache = json.load(open(cache_path)) if os.path.exists(cache_path) else {}
-except: cache = {}
-
-cache['$cache_key'] = {'fields': fields, 'ts': int(time.time())}
-os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-with open(cache_path, 'w') as f:
-    json.dump(cache, f, indent=2)
-
-print(result)
-" 2>/dev/null || echo "")"
-
-  echo "$result"
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/op-core.sh"
 
 # ═══════════════════════════════════════════════════════════════
 # COMMANDS
@@ -208,7 +49,6 @@ cmd_query_exec() {
   local query_id="$1"
   local format="${2:-table}"
 
-  # Execute the query — returns WPs
   local result
   result="$(api GET "/api/v3/queries/$query_id")"
 
@@ -219,7 +59,6 @@ cmd_query_exec() {
   if [ -n "$wp_collection_href" ]; then
     wps="$(api GET "$wp_collection_href")"
   else
-    # Fallback: the query response itself may contain embedded results
     wps="$result"
   fi
 
@@ -344,28 +183,26 @@ cmd_wp_list() {
   esac
 }
 
-# Filter builder helper
+# Filter builder helper — uses cached status resolution from op-core.sh
 add_filter() {
   local current="$1"
   local field="$2"
   local operator="$3"
   local value="$4"
 
-  # For status/type/assignee, resolve name → ID if not numeric
   local resolved_value="$value"
   if ! [[ "$value" =~ ^[0-9]+$ ]]; then
     case "$field" in
       status)
-        resolved_value="$(api GET "/api/v3/statuses" | jq -r "._embedded.elements[] | select(.name == \"$value\") | .id | tostring" | head -1)"
-        ;;
-      type)
-        # Type resolution needs project context — skip for now, use numeric
-        resolved_value="$value"
+        resolved_value="$(resolve_status_id "$value")"
+        if [ -z "$resolved_value" ]; then
+          echo "ERROR: status no encontrado: $value" >&2
+          resolved_value="$value"
+        fi
         ;;
     esac
   fi
 
-  # Append filter to array
   python3 -c "
 import json,sys
 filters = json.loads(sys.argv[1])
@@ -415,7 +252,6 @@ cmd_relation_create() {
   local description="${4:-}"
   local lag="${5:-}"
 
-  # Validate type
   case "$relation_type" in
     relates|blocks|blocked|precedes|follows|requires|required|duplicates|duplicated|includes|partof) ;;
     *) echo "ERROR: tipo de relación inválido: $relation_type" >&2
@@ -500,7 +336,7 @@ cmd_relation_check_blocked() {
   fi
 }
 
-# ─── wp set-orchestration ────────────────────────────────────
+# ─── wp set-orchestration (fixed: List fields use _links) ────
 
 cmd_wp_set_orchestration() {
   local wp_id="$1"
@@ -524,55 +360,55 @@ cmd_wp_set_orchestration() {
   local wp_json
   wp_json="$(api GET "/api/v3/work_packages/$wp_id")"
 
-  local lock_version project_href type_href
+  local lock_version project_id type_id
   lock_version="$(echo "$wp_json" | jq -r '.lockVersion')"
-  project_href="$(echo "$wp_json" | jq -r '._links.project.href')"
-  type_href="$(echo "$wp_json" | jq -r '._links.type.href')"
+  project_id="$(echo "$wp_json" | jq -r '._links.project.href' | sed 's|.*/||')"
+  type_id="$(echo "$wp_json" | jq -r '._links.type.href' | sed 's|.*/||')"
 
-  local project_id type_id
-  project_id="$(echo "$project_href" | sed 's|.*/||')"
-  type_id="$(echo "$type_href" | sed 's|.*/||')"
+  # Resolve each field value — handles List vs Text automatically
+  local fragments=()
+  local errors=()
 
-  # Build PATCH payload with resolved custom field keys
-  local patch_fields=""
+  _resolve_and_add() {
+    local fname="$1"
+    local fvalue="$2"
+    if [ -z "$fvalue" ]; then return; fi
 
-  if [ -n "$difficulty" ]; then
-    local key; key="$(resolve_field "$project_id" "$type_id" "difficulty")"
-    if [ -n "$key" ]; then patch_fields="$patch_fields, \"$key\": \"$difficulty\""; fi
-  fi
-  if [ -n "$specialization" ]; then
-    local key; key="$(resolve_field "$project_id" "$type_id" "specialization")"
-    if [ -n "$key" ]; then patch_fields="$patch_fields, \"$key\": \"$specialization\""; fi
-  fi
-  if [ -n "$agent" ]; then
-    local key; key="$(resolve_field "$project_id" "$type_id" "agent assigned")"
-    if [ -n "$key" ]; then patch_fields="$patch_fields, \"$key\": \"$agent\""; fi
-  fi
-  if [ -n "$tech_stack" ]; then
-    local key; key="$(resolve_field "$project_id" "$type_id" "tech stack")"
-    if [ -n "$key" ]; then patch_fields="$patch_fields, \"$key\": \"$tech_stack\""; fi
-  fi
-  if [ -n "$automation" ]; then
-    local key; key="$(resolve_field "$project_id" "$type_id" "automation level")"
-    if [ -n "$key" ]; then patch_fields="$patch_fields, \"$key\": \"$automation\""; fi
-  fi
-  if [ -n "$gate" ]; then
-    local key; key="$(resolve_field "$project_id" "$type_id" "gate current")"
-    if [ -n "$key" ]; then patch_fields="$patch_fields, \"$key\": \"$gate\""; fi
+    local resolved
+    resolved="$(resolve_field_value "$project_id" "$type_id" "$fname" "$fvalue")"
+
+    if [[ "$resolved" == ERROR:* ]]; then
+      errors+=("$fname: $resolved")
+    else
+      fragments+=("$resolved")
+    fi
+  }
+
+  _resolve_and_add "difficulty" "$difficulty"
+  _resolve_and_add "specialization" "$specialization"
+  _resolve_and_add "agent assigned" "$agent"
+  _resolve_and_add "tech stack" "$tech_stack"
+  _resolve_and_add "automation level" "$automation"
+  _resolve_and_add "gate current" "$gate"
+
+  # Report errors
+  if [ ${#errors[@]} -gt 0 ]; then
+    echo "ERRORES de resolución:" >&2
+    for err in "${errors[@]}"; do
+      echo "  $err" >&2
+    done
   fi
 
-  if [ -z "$patch_fields" ]; then
+  if [ ${#fragments[@]} -eq 0 ]; then
     echo "ERROR: ningún campo de orquestación especificado o resuelto" >&2
     return 1
   fi
 
-  # Remove leading comma+space
-  patch_fields="${patch_fields:2}"
+  # Build PATCH payload using build_patch_payload from op-core.sh
+  local payload
+  payload="$(build_patch_payload "$lock_version" "${fragments[@]}")"
 
-  local payload="{\"lockVersion\": $lock_version, $patch_fields}"
-
-  local result
-  result="$(api PATCH "/api/v3/work_packages/$wp_id" "$payload")"
+  api PATCH "/api/v3/work_packages/$wp_id" "$payload" > /dev/null
   echo "WP#$wp_id actualizado con campos de orquestación"
 }
 
@@ -586,8 +422,6 @@ cmd_wp_set_orchestration_batch() {
     return 1
   fi
 
-  # Expected format: TSV with columns: wp_id difficulty specialization agent tech_stack automation gate
-  # Lines starting with # are comments
   local count=0
   local errors=0
 

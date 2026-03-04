@@ -18,12 +18,8 @@ set -euo pipefail
 #   OPENPROJECT_API_TOKEN="xxxx"
 # ─────────────────────────────────────────────────────────────
 
-OPENPROJECT_URL="${OPENPROJECT_URL:-}"
-OPENPROJECT_API_TOKEN="${OPENPROJECT_API_TOKEN:-}"
-OPENPROJECT_API_CONNECT_TIMEOUT="${OPENPROJECT_API_CONNECT_TIMEOUT:-10}"
-OPENPROJECT_API_MAX_TIME="${OPENPROJECT_API_MAX_TIME:-60}"
-OPENPROJECT_API_MAX_RETRIES="${OPENPROJECT_API_MAX_RETRIES:-3}"
-OPENPROJECT_API_RETRY_BASE_SECONDS="${OPENPROJECT_API_RETRY_BASE_SECONDS:-1}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/op-core.sh"
 
 # ─── Output helpers ───────────────────────────────────────────
 
@@ -48,81 +44,8 @@ CHECKS_WARNED=0
 QUERIES_CREATED=0
 QUERIES_EXISTED=0
 
-# ─── API function (reused from openproject-sync.sh) ──────────
-
-api() {
-  local method="$1"
-  local path="$2"
-  local data="${3:-}"
-  local body_file http_code
-  local attempt=1
-  local sleep_seconds="$OPENPROJECT_API_RETRY_BASE_SECONDS"
-
-  body_file="$(mktemp)"
-
-  while true; do
-    if [ -n "$data" ]; then
-      http_code="$(curl -sS --connect-timeout "$OPENPROJECT_API_CONNECT_TIMEOUT" \
-        --max-time "$OPENPROJECT_API_MAX_TIME" \
-        -o "$body_file" -w "%{http_code}" \
-        -X "$method" \
-        -u "apikey:$OPENPROJECT_API_TOKEN" \
-        -H "Content-Type: application/json" \
-        -d "$data" \
-        "$OPENPROJECT_URL$path" 2>/dev/null || echo "000")"
-    else
-      http_code="$(curl -sS --connect-timeout "$OPENPROJECT_API_CONNECT_TIMEOUT" \
-        --max-time "$OPENPROJECT_API_MAX_TIME" \
-        -o "$body_file" -w "%{http_code}" \
-        -X "$method" \
-        -u "apikey:$OPENPROJECT_API_TOKEN" \
-        -H "Content-Type: application/json" \
-        "$OPENPROJECT_URL$path" 2>/dev/null || echo "000")"
-    fi
-
-    if [[ "$http_code" =~ ^2 ]]; then
-      cat "$body_file"
-      rm -f "$body_file"
-      return 0
-    fi
-
-    if { [ "$http_code" = "429" ] || [ "$http_code" = "000" ] || [[ "$http_code" =~ ^5 ]]; } && [ "$attempt" -lt "$OPENPROJECT_API_MAX_RETRIES" ]; then
-      echo "WARN: API $method $path → HTTP $http_code, retry $attempt/$OPENPROJECT_API_MAX_RETRIES in ${sleep_seconds}s" >&2
-      sleep "$sleep_seconds"
-      sleep_seconds=$((sleep_seconds * 2))
-      attempt=$((attempt + 1))
-      continue
-    fi
-
-    # For non-fatal calls, return error code instead of exiting
-    if [ "${API_NOEXIT:-}" = "1" ]; then
-      cat "$body_file" >&2
-      rm -f "$body_file"
-      return 1
-    fi
-
-    echo "ERROR: API $method $path → HTTP $http_code" >&2
-    cat "$body_file" >&2
-    rm -f "$body_file"
-    exit 1
-  done
-}
-
-# Non-fatal API call wrapper
-api_try() {
-  API_NOEXIT=1 api "$@"
-}
-
-require_env() {
-  if [ -z "$OPENPROJECT_URL" ] || [ -z "$OPENPROJECT_API_TOKEN" ]; then
-    fail "OPENPROJECT_URL y OPENPROJECT_API_TOKEN son requeridos"
-    echo ""
-    echo "  Configura las variables de entorno:"
-    echo "    export OPENPROJECT_URL=\"https://sentinels.openproject.com\""
-    echo "    export OPENPROJECT_API_TOKEN=\"tu-token-aquí\""
-    exit 1
-  fi
-}
+# Dry-run mode
+DRY_RUN=false
 
 # ─── 1. Connection & Auth ─────────────────────────────────────
 
@@ -163,7 +86,6 @@ check_connection() {
 
 # ─── 2. Custom Fields Verification ────────────────────────────
 
-# Custom fields que deben existir para orquestación
 ORCHESTRATION_FIELDS=(
   "Difficulty:list:Trivial,Easy,Medium,Hard,Expert"
   "Specialization:list:Frontend,Backend,Full-stack,Security,QA,DevOps,Compliance,Documentation"
@@ -173,7 +95,6 @@ ORCHESTRATION_FIELDS=(
   "Gate Current:list:G0,G1,G2,G3,G4,G5,G6,G7,G8,G9"
 )
 
-# Custom fields de trazabilidad (ya deben existir del setup anterior)
 TRACEABILITY_FIELDS=(
   "Contract ID:text:"
   "GitHub PR:text:"
@@ -187,8 +108,6 @@ check_custom_fields() {
   local project_ref="$1"
   section "2. Custom Fields — Proyecto: $project_ref"
 
-  # Get a WP schema for this project to see available custom fields
-  # We need a type ID — get available types first
   local types_json type_id
   types_json="$(api_try GET "/api/v3/projects/$project_ref/types" 2>/dev/null)" || {
     fail "No se pueden obtener los tipos del proyecto $project_ref"
@@ -203,13 +122,11 @@ check_custom_fields() {
     return 1
   fi
 
-  # Get schema for this project+type
-  local schema_json
-  schema_json="$(api_try GET "/api/v3/work_packages/schemas/$project_ref-$type_id" 2>/dev/null)" || {
-    fail "No se puede obtener el schema para $project_ref-$type_id"
-    CHECKS_FAILED=$((CHECKS_FAILED + 1))
-    return 1
-  }
+  # Populate field cache (from op-core.sh) — this also caches allowedValues
+  _populate_field_cache "$project_ref" "$type_id"
+
+  local cache_path
+  cache_path="$(_field_cache_path)"
 
   info "Verificando campos de orquestación..."
   local missing_fields=()
@@ -219,20 +136,8 @@ check_custom_fields() {
     field_type="$(echo "$field_spec" | cut -d: -f2)"
     field_values="$(echo "$field_spec" | cut -d: -f3)"
 
-    # Search in schema for this field name
     local found_key
-    found_key="$(echo "$schema_json" | python3 -c "
-import json,sys,re
-schema = json.load(sys.stdin)
-target = '$field_name'.strip().lower()
-for key,val in schema.items():
-    if re.match(r'customField\d+$', key):
-        if str(val.get('name',' ')).strip().lower() == target:
-            print(key)
-            break
-else:
-    print('')
-" 2>/dev/null || echo "")"
+    found_key="$(resolve_field "$project_ref" "$type_id" "$field_name")"
 
     if [ -n "$found_key" ]; then
       ok "$field_name → $found_key ($field_type)"
@@ -250,18 +155,7 @@ else:
     field_name="$(echo "$field_spec" | cut -d: -f1)"
 
     local found_key
-    found_key="$(echo "$schema_json" | python3 -c "
-import json,sys,re
-schema = json.load(sys.stdin)
-target = '$field_name'.strip().lower()
-for key,val in schema.items():
-    if re.match(r'customField\d+$', key):
-        if str(val.get('name',' ')).strip().lower() == target:
-            print(key)
-            break
-else:
-    print('')
-" 2>/dev/null || echo "")"
+    found_key="$(resolve_field "$project_ref" "$type_id" "$field_name")"
 
     if [ -n "$found_key" ]; then
       ok "$field_name → $found_key"
@@ -300,17 +194,16 @@ else:
     done
   fi
 
-  # Export found field mappings for use in query creation
-  FIELD_MAPPINGS_JSON="$(echo "$schema_json" | python3 -c "
-import json,sys,re
-schema = json.load(sys.stdin)
-mappings = {}
-for key,val in schema.items():
-    if re.match(r'customField\d+$', key):
-        name = str(val.get('name','')).strip()
-        if name:
-            mappings[name.lower()] = key
-print(json.dumps(mappings))
+  # Export field mappings for query creation
+  FIELD_MAPPINGS_JSON="$(python3 -c "
+import json
+try:
+    cache = json.load(open('$cache_path'))
+    entry = cache.get('${project_ref}-${type_id}', {})
+    mappings = {name: info['key'] for name, info in entry.get('fields', {}).items()}
+    print(json.dumps(mappings))
+except:
+    print('{}')
 " 2>/dev/null || echo "{}")"
 }
 
@@ -320,7 +213,6 @@ create_agent_queries() {
   local project_ref="$1"
   section "3. Saved Queries — Proyecto: $project_ref"
 
-  # Get project ID (numeric) from identifier
   local project_json project_id
   project_json="$(api_try GET "/api/v3/projects/$project_ref" 2>/dev/null)" || {
     fail "No se puede acceder al proyecto $project_ref"
@@ -329,10 +221,9 @@ create_agent_queries() {
   }
   project_id="$(echo "$project_json" | jq -r '.id')"
 
-  # Get existing queries for this project
+  # Get existing queries
   local existing_queries
   existing_queries="$(api_try GET "/api/v3/projects/$project_ref/queries" 2>/dev/null)" || {
-    # Try global queries endpoint with project filter
     existing_queries="$(api_try GET "/api/v3/queries?filters=%5B%7B%22project%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%22$project_id%22%5D%7D%7D%5D" 2>/dev/null)" || {
       warn "No se pueden listar queries existentes — se intentará crear todas"
       existing_queries='{"_embedded":{"elements":[]}}'
@@ -343,37 +234,13 @@ create_agent_queries() {
   local existing_names
   existing_names="$(echo "$existing_queries" | jq -r '._embedded.elements[]?.name // empty' 2>/dev/null || echo "")"
 
-  # Resolve status IDs
-  info "Resolviendo IDs de estados..."
-  local statuses_json
-  statuses_json="$(api GET "/api/v3/statuses")"
-
-  resolve_status_id() {
-    local name="$1"
-    echo "$statuses_json" | jq -r "._embedded.elements[] | select(.name == \"$name\") | .id" | head -1
-  }
-
-  # Resolve type IDs for this project
-  local types_json
-  types_json="$(api GET "/api/v3/projects/$project_ref/types")"
-
-  resolve_type_id() {
-    local name="$1"
-    echo "$types_json" | jq -r "._embedded.elements[] | select(.name == \"$name\") | .id" | head -1
-  }
-
-  # Resolve field keys from mappings
-  field_key() {
-    local name="$1"
-    echo "$FIELD_MAPPINGS_JSON" | jq -r ".\"$(echo "$name" | tr '[:upper:]' '[:lower:]')\" // empty"
-  }
-
-  # ── Define queries per agent ──
+  # Resolve IDs using cached functions from op-core.sh
+  info "Resolviendo IDs de estados y tipos..."
 
   local status_new status_in_spec status_in_progress status_developed
   local status_in_review status_in_security status_on_hold status_deployed
   local status_verification status_test_failed status_scheduled
-  local type_task type_user_story type_feature type_epic
+  local type_task type_user_story type_feature
 
   status_new="$(resolve_status_id "New")"
   status_in_spec="$(resolve_status_id "In specification")"
@@ -387,17 +254,9 @@ create_agent_queries() {
   status_test_failed="$(resolve_status_id "Test failed")"
   status_scheduled="$(resolve_status_id "Scheduled")"
 
-  type_task="$(resolve_type_id "Task")"
-  type_user_story="$(resolve_type_id "User story")"
-  type_feature="$(resolve_type_id "Feature")"
-  type_epic="$(resolve_type_id "Epic")"
-
-  local cf_contract cf_agent cf_difficulty cf_evidence_url cf_gate
-  cf_contract="$(field_key "contract id")"
-  cf_agent="$(field_key "agent assigned")"
-  cf_difficulty="$(field_key "difficulty")"
-  cf_evidence_url="$(field_key "evidence url")"
-  cf_gate="$(field_key "gate current")"
+  type_task="$(resolve_type_id "$project_ref" "Task")"
+  type_user_story="$(resolve_type_id "$project_ref" "User story")"
+  type_feature="$(resolve_type_id "$project_ref" "Feature")"
 
   # Helper to create a query if it doesn't exist
   create_query() {
@@ -407,6 +266,12 @@ create_agent_queries() {
     if echo "$existing_names" | grep -qF "$query_name"; then
       info "Ya existe: $query_name"
       QUERIES_EXISTED=$((QUERIES_EXISTED + 1))
+      return 0
+    fi
+
+    if [ "$DRY_RUN" = true ]; then
+      info "[DRY-RUN] Crearía: $query_name"
+      QUERIES_CREATED=$((QUERIES_CREATED + 1))
       return 0
     fi
 
@@ -654,8 +519,6 @@ check_project_permissions() {
   local project_ref="$1"
   section "4. Permisos — Proyecto: $project_ref"
 
-  # Check WP create permission
-  local form_json
   if form_json="$(api_try POST "/api/v3/projects/$project_ref/work_packages/form" '{}' 2>/dev/null)"; then
     ok "Crear Work Packages: permitido"
     CHECKS_PASSED=$((CHECKS_PASSED + 1))
@@ -664,7 +527,6 @@ check_project_permissions() {
     CHECKS_FAILED=$((CHECKS_FAILED + 1))
   fi
 
-  # Check version access
   if api_try GET "/api/v3/projects/$project_ref/versions" > /dev/null 2>&1; then
     ok "Listar Versiones: permitido"
     CHECKS_PASSED=$((CHECKS_PASSED + 1))
@@ -673,7 +535,6 @@ check_project_permissions() {
     CHECKS_WARNED=$((CHECKS_WARNED + 1))
   fi
 
-  # Check query create permission (try to get the form)
   if api_try POST "/api/v3/queries/form" '{"name":"_test_permission_check"}' > /dev/null 2>&1; then
     ok "Crear Queries: permitido"
     CHECKS_PASSED=$((CHECKS_PASSED + 1))
@@ -687,6 +548,10 @@ check_project_permissions() {
 
 print_report() {
   section "REPORTE FINAL"
+
+  if [ "$DRY_RUN" = true ]; then
+    echo -e "\n  ${CYAN}${BOLD}MODO DRY-RUN — no se han realizado cambios${NC}\n"
+  fi
 
   echo ""
   echo -e "  ${GREEN}Checks OK:${NC}       $CHECKS_PASSED"
@@ -719,14 +584,17 @@ Usage:
   op-setup.sh <PROJECT_IDENTIFIER> [PROJECT_2] [PROJECT_N]
   op-setup.sh --check-only <PROJECT_IDENTIFIER>
   op-setup.sh --queries-only <PROJECT_IDENTIFIER>
+  op-setup.sh --dry-run <PROJECT_IDENTIFIER>
 
 Options:
   --check-only     Solo verificar, no crear nada
   --queries-only   Solo crear/verificar queries
+  --dry-run        Mostrar qué haría sin ejecutar cambios
 
 Examples:
   op-setup.sh sentinels-hub
   op-setup.sh sentinels-hub agents-sak sentinels-lighthouse
+  op-setup.sh --dry-run sentinels-hub
   op-setup.sh --check-only sentinels-hub
 
 Env vars:
@@ -744,10 +612,11 @@ main() {
 
   while [ $# -gt 0 ]; do
     case "$1" in
-      --check-only)  check_only=true; shift ;;
+      --check-only)   check_only=true; shift ;;
       --queries-only) queries_only=true; shift ;;
-      -h|--help)     usage; exit 0 ;;
-      *)             projects+=("$1"); shift ;;
+      --dry-run)      DRY_RUN=true; shift ;;
+      -h|--help)      usage; exit 0 ;;
+      *)              projects+=("$1"); shift ;;
     esac
   done
 
@@ -758,7 +627,11 @@ main() {
 
   echo ""
   echo -e "${BOLD}╔═══════════════════════════════════════════════════╗${NC}"
-  echo -e "${BOLD}║   OpenProject Setup — Sentinels Orchestration    ║${NC}"
+  if [ "$DRY_RUN" = true ]; then
+    echo -e "${BOLD}║   OpenProject Setup — DRY RUN                    ║${NC}"
+  else
+    echo -e "${BOLD}║   OpenProject Setup — Sentinels Orchestration    ║${NC}"
+  fi
   echo -e "${BOLD}╚═══════════════════════════════════════════════════╝${NC}"
 
   require_env
