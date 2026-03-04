@@ -1,75 +1,114 @@
 # Agents SAK — Roadmap
 
-## v0.1.0 — OpenProject Foundation (actual)
+## Versiones completadas
 
-### Objetivos
-- Catálogo completo de operaciones OpenProject para agentes
-- Schemas de validación para Work Packages, versiones y comentarios
-- Templates estandarizados (descripción WP, governance comment, planning tree)
-- UI web base con dashboard, backlog, roadmap y trazabilidad
-- Documentación de arquitectura
-
-### Entregables
+### v0.1.0 — OpenProject Foundation
 - [x] Estructura del repositorio
-- [ ] `tools/openproject/catalog/` — 7 documentos de operaciones
-- [ ] `tools/openproject/schemas/` — 3 schemas JSON
-- [ ] `tools/openproject/templates/` — 3 templates
-- [ ] `ui/` — Dashboard web con 4 vistas
-- [ ] `docs/` — architecture, roadmap, changelog
+- [x] `tools/openproject/catalog/` — 7 documentos de operaciones (work-packages, versions, backlogs, roadmaps, time-tracking, status-workflow, traceability)
+- [x] `tools/openproject/schemas/` — 3 schemas (work-package, version, comment)
+- [x] `tools/openproject/templates/` — 3 templates (wp-description, governance-comment, planning-tree)
+- [x] `ui/` — Dashboard web con 4 vistas (Dashboard, Backlog, Roadmap, Traceability)
+- [x] `docs/` — architecture, roadmap, changelog
+
+### v0.2.0 — Orchestration Layer
+- [x] `tools/openproject/catalog/` — 3 nuevos docs (queries, relations, projects)
+- [x] `tools/openproject/schemas/` — 3 nuevos schemas (query, relation, project)
+- [x] `tools/openproject/playbooks/` — 8 playbooks por agente
+- [x] `ui/` — 2 nuevas vistas (Work Queues, Agents)
+- [x] Campos de orquestación en catalog (Difficulty, Specialization, Agent Assigned, Tech Stack, Automation Level, Gate Current)
+
+### v0.3.0 — OpenProject CLI Modular
+- [x] `tools/openproject/scripts/op-core.sh` — API retry, field resolution, caching
+- [x] `tools/openproject/scripts/op-cli.sh` — CLI: query, wp, relation commands
+- [x] `tools/openproject/scripts/op-setup.sh` — Setup verification + saved queries
+
+### v0.4.0 — Tools Expansion
+- [x] `tools/github/` — Tool GitHub completa (catalog, schemas, templates, scripts gh-core/gh-cli)
+- [x] `tools/evidence/` — Tool Evidence completa (bundles SHA-256, ledger, verification, redaction)
+- [x] `tools/compliance/` — Tool Compliance completa (4 frameworks, 24 controles, audit trail, scoring)
+- [x] Compliance scripts: co-core.sh (registry embebido), co-cli.sh (CLI), co-setup.sh (setup)
+- [x] Compliance playbooks: jarvis (G9), oracle (G6)
 
 ---
 
-## v0.2.0 — OpenProject CLI modular (próximo)
+## v0.5.0 — Consolidation & Consistency (actual)
 
 ### Objetivos
-- Refactorizar `openproject-sync.sh` (75KB monolítico) en módulos
-- CLI con subcomandos claros: `sak op wp create`, `sak op version list`, etc.
-- Validación pre-envío contra schemas locales
-- Tests unitarios para cada módulo
+- Alinear catálogos, schemas y scripts al 100%
+- Verificación completa del entorno OP (statuses, types, project fields)
+- Comandos de proyecto en CLI
 
 ### Entregables
-- [ ] `tools/openproject/scripts/op-cli.sh` — CLI principal
-- [ ] `tools/openproject/scripts/modules/` — Módulos por dominio
-- [ ] `tools/openproject/scripts/op-validate.sh` — Validador local
-- [ ] Tests
+- [x] Fix inconsistencias catalog ↔ op-setup.sh (field names, types, values)
+- [x] Campos de orquestación en work-package.schema.json
+- [x] Verificación de 21 statuses y 7 types en op-setup.sh
+- [x] Verificación de 7 project-level custom fields en op-setup.sh
+- [x] Comandos `project list/get/set/versions/members` en op-cli.sh
+- [x] Roadmap actualizado
+- [x] Changelog v0.5.0
 
 ---
 
-## v0.3.0 — Agent Workflows
+## v0.6.0 — Cross-Tool Integration (próximo)
 
 ### Objetivos
-- Workflows pre-definidos por agente y gate
-- Cada agente tiene un "playbook" de qué hacer en cada gate
-- Integración con el protocolo G0-G9
+- Pipeline end-to-end: OP → GitHub → Evidence → Compliance → Ledger
+- Trazabilidad completa verificable entre herramientas
+- Comandos de integración cruzada
 
 ### Entregables
-- [ ] `tools/openproject/workflows/` — Playbooks por gate
-- [ ] Integración con contract.json
-- [ ] Reportes automáticos de estado por contrato
+- [ ] `sak-orchestrator.sh` — Orquestador que coordina las 4 tools
+- [ ] Traceability check end-to-end (WP → branch → PR → bundle → ledger → audit)
+- [ ] Dashboard UI: vista unificada de estado por contrato
+- [ ] Métricas de trazabilidad (≥95% target)
 
 ---
 
-## v0.4.0 — Herramientas adicionales
+## v0.7.0 — Agent Runtime Hooks
 
 ### Objetivos
-- Segunda herramienta: `tools/github/` — Gestión de PRs, branches, releases
-- Tercera herramienta: `tools/evidence/` — Bundles, hashing, ledger
-- UI ampliada con vistas para cada herramienta
+- Hooks para que sentinels-agents consuma SAK de forma nativa
+- Entry points claros por gate para cada agente
+- Configuración por proyecto exportable
+
+### Entregables
+- [ ] `hooks/` — Entry points por gate (gate-entry.sh, gate-exit.sh)
+- [ ] Config exporter: genera configuración de agente desde OP
+- [ ] Validación pre-gate (verifica prerequisites antes de ejecutar)
+- [ ] Integración documentada con sentinels-agents
 
 ---
 
-## v0.5.0 — Integración completa
+## v0.8.0 — Analytics & Reporting
 
 ### Objetivos
-- Pipeline end-to-end: OP → GitHub → Evidence → Ledger
-- Dashboard unificado con estado de todos los contratos
-- Métricas y KPIs (trazabilidad ≥95%, etc.)
+- Métricas históricas, KPIs, reports automáticos
+- Dashboard con gráficos de progreso, velocity, lead time
+
+### Entregables
+- [ ] `tools/analytics/` — Métricas históricas
+- [ ] UI: gráficos de velocity, lead time, gate pass rate
+- [ ] Reports periódicos automáticos (sprint summary, compliance status)
 
 ---
 
-## Futuro
+## v0.9.0 — Production Ready
 
-- `tools/compliance/` — Checklists automáticos ISO/SOC2/ENS
+### Objetivos
+- QA final, refactorización, documentación completa
+- Todo listo para uso en producción por la triada (agents, lighthouse, journal)
+
+### Entregables
+- [ ] QA review de todos los scripts (edge cases, error handling)
+- [ ] Documentación completa de API de cada tool
+- [ ] E2E tests automatizados
+- [ ] Release notes v1.0.0-rc
+
+---
+
+## Futuro (v1.0+)
+
 - `tools/notifications/` — Alertas por estado, bloqueos, gates
-- `tools/analytics/` — Métricas históricas, lead time, velocity
 - API REST propia para consumo programático
+- Plugin system para tools de terceros
+- Multi-instance OP support

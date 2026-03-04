@@ -131,6 +131,35 @@
     "ledger_entry": {
       "type": "string",
       "description": "Referencia a la entrada en el ledger"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["Trivial", "Easy", "Medium", "Hard", "Expert"],
+      "description": "Complejidad estimada del WP (asignada por @inception en G2)"
+    },
+    "specialization": {
+      "type": "string",
+      "enum": ["Frontend", "Backend", "Full-stack", "Security", "QA", "DevOps", "Compliance", "Documentation"],
+      "description": "Área de expertise requerida para routing al agente correcto"
+    },
+    "agent_assigned": {
+      "type": "string",
+      "enum": ["@jarvis", "@inception", "@gtd", "@morpheus", "@agent-smith", "@oracle", "@pepper", "@ariadne"],
+      "description": "Agente asignado para ejecutar el WP"
+    },
+    "tech_stack": {
+      "type": "string",
+      "description": "Tecnologías requeridas (texto libre, ej. 'HTML/CSS, JavaScript, Python')"
+    },
+    "automation_level": {
+      "type": "string",
+      "enum": ["Full", "Supervised", "Human-required"],
+      "description": "Grado de autonomía del agente para este WP"
+    },
+    "gate_current": {
+      "type": "string",
+      "pattern": "^G[0-9]$",
+      "description": "Gate activo para este WP (G0-G9)"
     }
   },
   "allOf": [

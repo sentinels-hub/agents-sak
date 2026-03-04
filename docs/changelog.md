@@ -5,6 +5,40 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ---
 
+## [0.5.0-dev] — 2026-03-04
+
+### Added
+- `tools/openproject/scripts/op-setup.sh` — Verificación de statuses y types
+  - 21 statuses corporativos verificados (antes solo 11)
+  - 7 tipos de WP verificados (Epic, Feature, User story, Task, Bug, Incident Story, Milestone)
+  - 7 project-level custom fields verificados (Tech Stack, Project Type, Lead Agent, Automation Tier, Compliance Scope, Repository URL, Lighthouse Version)
+  - Instrucciones de creación manual para campos faltantes
+- `tools/openproject/scripts/op-cli.sh` — Comandos de proyecto
+  - `project list` — Lista proyectos activos (table/json/ids)
+  - `project get` — Detalle de proyecto con custom fields
+  - `project set` — Actualizar status y statusExplanation
+  - `project versions` — Versiones del proyecto
+  - `project members` — Miembros y roles
+- `tools/openproject/schemas/work-package.schema.json` — 6 campos de orquestación
+  - difficulty, specialization, agent_assigned, tech_stack, automation_level, gate_current
+  - Validación con enums alineados a op-setup.sh
+
+### Changed
+- `tools/openproject/catalog/work-packages.md` — Alineado con op-setup.sh
+  - Tech Stack: List (multi) → Text (libre)
+  - Automation Level: Full-auto/Semi-auto → Full/Supervised
+  - Specialization: valores alineados (8 valores)
+- `tools/openproject/scripts/op-setup.sh` — Renumerado a 7 secciones
+  - Sección 3: Status & Types (nueva)
+  - Sección 5: Project Custom Fields (nueva)
+- `docs/roadmap.md` — Reescrito completamente (v0.1.0→v0.9.0+ con estado real)
+
+### Fixed
+- Inconsistencia catalog ↔ op-setup.sh: field names, types, values alineados
+- Traceability field names alineados con Lighthouse policy.yaml ("Github", "Github Commit")
+
+---
+
 ## [0.4.0-dev] — 2026-03-04
 
 ### Added

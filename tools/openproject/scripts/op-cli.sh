@@ -494,6 +494,187 @@ cmd_wp_list_all() {
   echo "Total: $total_fetched WPs" >&2
 }
 
+# ─── project list ─────────────────────────────────────────────
+
+cmd_project_list() {
+  local format="${1:-table}"
+
+  local result
+  result="$(api GET "/api/v3/projects?filters=%5B%7B%22active%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%22t%22%5D%7D%7D%5D&sortBy=%5B%5B%22name%22%2C%22asc%22%5D%5D&pageSize=100")"
+
+  local total
+  total="$(echo "$result" | jq -r '.total // 0')"
+
+  case "$format" in
+    json)
+      echo "$result" | jq '._embedded.elements'
+      ;;
+    ids)
+      echo "$result" | jq -r '._embedded.elements[].identifier'
+      ;;
+    table|*)
+      echo "Proyectos activos: $total"
+      echo ""
+      printf "  %-6s %-25s %-12s %s\n" "ID" "IDENTIFIER" "STATUS" "NAME"
+      printf "  %-6s %-25s %-12s %s\n" "──────" "─────────────────────────" "────────────" "──────────────────────────────"
+      echo "$result" | jq -r '
+        ._embedded.elements[] |
+        "  \(.id|tostring|.[0:6])\t\(.identifier|.[0:25])\t\(._links.status.title // "—"|.[0:12])\t\(.name)"
+      '
+      ;;
+  esac
+}
+
+# ─── project get ──────────────────────────────────────────────
+
+cmd_project_get() {
+  local project_ref="$1"
+  local format="${2:-summary}"
+
+  local result
+  result="$(api GET "/api/v3/projects/$project_ref")"
+
+  case "$format" in
+    json)
+      echo "$result" | jq .
+      ;;
+    summary|*)
+      echo "$result" | jq -r '"
+  Project #\(.id) — \(.name)
+  Identifier:  \(.identifier)
+  Status:      \(._links.status.title // "—")
+  Active:      \(.active)
+  Public:      \(.public)
+  Parent:      \(._links.parent.title // "sin padre")
+  Created:     \(.createdAt // "?")
+  Updated:     \(.updatedAt // "?")
+"'
+      # Show statusExplanation if present
+      local explanation
+      explanation="$(echo "$result" | jq -r '.statusExplanation.raw // empty')"
+      if [ -n "$explanation" ]; then
+        echo "  Status Explanation:"
+        echo "$explanation" | sed 's/^/    /'
+        echo ""
+      fi
+
+      # Show custom fields
+      echo "  Custom Fields:"
+      echo "$result" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for key, val in sorted(data.items()):
+    if key.startswith('customField') and val:
+        print(f'    {key}: {val}')
+" 2>/dev/null || true
+      ;;
+  esac
+}
+
+# ─── project set ──────────────────────────────────────────────
+
+cmd_project_set() {
+  local project_ref="$1"
+  shift
+
+  local status="" explanation=""
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --status)       shift; status="$1"; shift ;;
+      --explanation)  shift; explanation="$1"; shift ;;
+      *)              echo "ERROR: opción desconocida: $1" >&2; return 1 ;;
+    esac
+  done
+
+  local payload
+  payload="$(python3 -c "
+import json
+data = {}
+links = {}
+status = '$status'
+explanation = '''$explanation'''
+
+if status:
+    valid = ['on_track', 'at_risk', 'in_trouble']
+    if status not in valid:
+        raise ValueError(f'Status inválido: {status}. Válidos: {valid}')
+    links['status'] = {'href': f'/api/v3/project_statuses/{status}'}
+
+if explanation:
+    data['statusExplanation'] = {'raw': explanation, 'format': 'markdown'}
+
+if links:
+    data['_links'] = links
+
+print(json.dumps(data))
+")"
+
+  if [ "$payload" = "{}" ]; then
+    echo "ERROR: especifica al menos --status o --explanation" >&2
+    return 1
+  fi
+
+  api PATCH "/api/v3/projects/$project_ref" "$payload" > /dev/null
+  echo "Proyecto $project_ref actualizado"
+}
+
+# ─── project versions ────────────────────────────────────────
+
+cmd_project_versions() {
+  local project_ref="$1"
+  local format="${2:-table}"
+
+  local result
+  result="$(api GET "/api/v3/projects/$project_ref/versions")"
+
+  local total
+  total="$(echo "$result" | jq -r '.total // 0')"
+
+  case "$format" in
+    json)
+      echo "$result" | jq '._embedded.elements'
+      ;;
+    table|*)
+      echo "Versiones: $total"
+      echo ""
+      printf "  %-6s %-20s %-12s %s\n" "ID" "NAME" "STATUS" "START DATE"
+      printf "  %-6s %-20s %-12s %s\n" "──────" "────────────────────" "────────────" "──────────"
+      echo "$result" | jq -r '
+        ._embedded.elements[] |
+        "  \(.id|tostring|.[0:6])\t\(.name|.[0:20])\t\(.status // "—"|.[0:12])\t\(.startDate // "—")"
+      '
+      ;;
+  esac
+}
+
+# ─── project members ─────────────────────────────────────────
+
+cmd_project_members() {
+  local project_ref="$1"
+
+  # Get project ID
+  local project_json project_id
+  project_json="$(api GET "/api/v3/projects/$project_ref")"
+  project_id="$(echo "$project_json" | jq -r '.id')"
+
+  local encoded_filter
+  encoded_filter="$(urlencode "[{\"project\":{\"operator\":\"=\",\"values\":[\"$project_id\"]}}]")"
+
+  local result
+  result="$(api GET "/api/v3/memberships?filters=$encoded_filter&pageSize=100")"
+
+  local total
+  total="$(echo "$result" | jq -r '.total // 0')"
+
+  echo "Miembros de $project_ref: $total"
+  echo ""
+  echo "$result" | jq -r '
+    ._embedded.elements[] |
+    "  \(._links.principal.title // "?")\t\([._links.roles[]?.title] | join(", "))"
+  '
+}
+
 # ═══════════════════════════════════════════════════════════════
 # USAGE & ROUTER
 # ═══════════════════════════════════════════════════════════════
@@ -526,6 +707,14 @@ Relations:
   op-cli.sh relation list <WP_ID> [TYPE_FILTER]
   op-cli.sh relation check-blocked <WP_ID>
 
+Projects:
+  op-cli.sh project list [table|json|ids]
+  op-cli.sh project get <PROJECT_REF> [summary|json]
+  op-cli.sh project set <PROJECT_REF> [--status on_track|at_risk|in_trouble]
+                                       [--explanation "MARKDOWN"]
+  op-cli.sh project versions <PROJECT_REF> [table|json]
+  op-cli.sh project members <PROJECT_REF>
+
 Relation types:
   relates, blocks, blocked, precedes, follows, requires, required,
   duplicates, duplicated, includes, partof
@@ -539,6 +728,11 @@ Examples:
   op-cli.sh wp set-orchestration 1897 --difficulty Medium --agent @gtd --gate G3
   op-cli.sh relation create 1897 blocks 1899
   op-cli.sh relation check-blocked 1899
+  op-cli.sh project list
+  op-cli.sh project get sentinels-hub
+  op-cli.sh project set sentinels-hub --status at_risk --explanation "2 WPs blocked"
+  op-cli.sh project versions sentinels-hub
+  op-cli.sh project members sentinels-hub
 
 Env vars:
   OPENPROJECT_URL           URL de OpenProject (requerido)
@@ -595,13 +789,26 @@ main() {
       esac
       ;;
 
+    project)
+      local subcmd="${1:-list}"
+      shift 2>/dev/null || true
+      case "$subcmd" in
+        list)      cmd_project_list "$@" ;;
+        get)       cmd_project_get "$@" ;;
+        set)       cmd_project_set "$@" ;;
+        versions)  cmd_project_versions "$@" ;;
+        members)   cmd_project_members "$@" ;;
+        *)         echo "ERROR: subcomando desconocido: project $subcmd" >&2; usage; exit 1 ;;
+      esac
+      ;;
+
     -h|--help|help)
       usage
       ;;
 
     *)
       echo "ERROR: dominio desconocido: $domain" >&2
-      echo "  Dominios válidos: query, wp, relation" >&2
+      echo "  Dominios válidos: query, wp, relation, project" >&2
       usage
       exit 1
       ;;

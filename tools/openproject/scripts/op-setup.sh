@@ -7,9 +7,11 @@ set -euo pipefail
 # Verifica que OP esté configurado para orquestación de agentes:
 #   1. Conectividad y autenticación
 #   2. Custom fields de orquestación (solo verifica, no crea)
-#   3. Saved queries por agente (crea si no existen)
-#   4. Permisos de proyecto
-#   5. Genera reporte de estado
+#   3. Status & types (21 statuses, 7 types)
+#   4. Saved queries por agente (crea si no existen)
+#   5. Project-level custom fields (7 campos de proyecto)
+#   6. Permisos de proyecto
+#   7. Genera reporte de estado
 #
 # Idempotente: ejecutar N veces no rompe nada.
 #
@@ -97,8 +99,8 @@ ORCHESTRATION_FIELDS=(
 
 TRACEABILITY_FIELDS=(
   "Contract ID:text:"
-  "GitHub PR:text:"
-  "GitHub Commit:text:"
+  "Github:text:"
+  "Github Commit:text:"
   "Evidence URL:text:"
   "Evidence SHA256:text:"
   "Ledger Entry:text:"
@@ -207,11 +209,120 @@ except:
 " 2>/dev/null || echo "{}")"
 }
 
-# ─── 3. Saved Queries ─────────────────────────────────────────
+# ─── 3. Status & Types Verification ──────────────────────────
+
+# Full list of 21 Sentinels statuses (from status-workflow.md)
+EXPECTED_STATUSES=(
+  "New"
+  "Ready"
+  "In specification"
+  "Specified"
+  "Confirmed"
+  "To be scheduled"
+  "Scheduled"
+  "In progress"
+  "Developed"
+  "In security analysis"
+  "In review"
+  "Verification"
+  "In testing"
+  "Tested"
+  "In deployment"
+  "Deployed"
+  "On hold"
+  "Test failed"
+  "Rejected"
+  "Done"
+  "Closed"
+)
+
+# Full list of 7 Sentinels WP types (from work-packages.md)
+EXPECTED_TYPES=(
+  "Epic"
+  "Feature"
+  "User story"
+  "Task"
+  "Bug"
+  "Incident Story"
+  "Milestone"
+)
+
+check_statuses_and_types() {
+  local project_ref="$1"
+  section "3. Status & Types — Proyecto: $project_ref"
+
+  # ── Verify statuses ──
+  info "Verificando statuses (${#EXPECTED_STATUSES[@]} esperados)..."
+
+  # Fetch all statuses from OP (cached by op-core.sh)
+  _populate_status_cache 2>/dev/null || true
+
+  local missing_statuses=()
+  for status_name in "${EXPECTED_STATUSES[@]}"; do
+    local sid
+    sid="$(resolve_status_id "$status_name" 2>/dev/null)"
+    if [ -n "$sid" ]; then
+      CHECKS_PASSED=$((CHECKS_PASSED + 1))
+    else
+      missing_statuses+=("$status_name")
+      CHECKS_FAILED=$((CHECKS_FAILED + 1))
+    fi
+  done
+
+  if [ ${#missing_statuses[@]} -eq 0 ]; then
+    ok "Todos los ${#EXPECTED_STATUSES[@]} statuses encontrados"
+  else
+    local found_count=$((${#EXPECTED_STATUSES[@]} - ${#missing_statuses[@]}))
+    warn "Statuses: $found_count/${#EXPECTED_STATUSES[@]} encontrados"
+    for ms in "${missing_statuses[@]}"; do
+      fail "Status faltante: $ms"
+    done
+    echo ""
+    echo -e "  ${YELLOW}Crear statuses en: Administration → Work packages → Status${NC}"
+  fi
+
+  # ── Verify types ──
+  info "Verificando tipos (${#EXPECTED_TYPES[@]} esperados)..."
+
+  local types_json
+  types_json="$(api_try GET "/api/v3/projects/$project_ref/types" 2>/dev/null)" || {
+    fail "No se pueden obtener los tipos del proyecto"
+    CHECKS_FAILED=$((CHECKS_FAILED + 1))
+    return 1
+  }
+
+  local available_types
+  available_types="$(echo "$types_json" | jq -r '._embedded.elements[].name' 2>/dev/null || echo "")"
+
+  local missing_types=()
+  for type_name in "${EXPECTED_TYPES[@]}"; do
+    if echo "$available_types" | grep -qxF "$type_name"; then
+      CHECKS_PASSED=$((CHECKS_PASSED + 1))
+    else
+      missing_types+=("$type_name")
+      CHECKS_FAILED=$((CHECKS_FAILED + 1))
+    fi
+  done
+
+  if [ ${#missing_types[@]} -eq 0 ]; then
+    ok "Todos los ${#EXPECTED_TYPES[@]} tipos encontrados"
+  else
+    local found_count=$((${#EXPECTED_TYPES[@]} - ${#missing_types[@]}))
+    warn "Tipos: $found_count/${#EXPECTED_TYPES[@]} encontrados"
+    for mt in "${missing_types[@]}"; do
+      fail "Tipo faltante: $mt"
+    done
+    echo ""
+    echo -e "  ${YELLOW}Crear tipos en: Administration → Work packages → Types${NC}"
+    echo -e "  ${YELLOW}Luego habilitar en: Project settings → Modules → Work packages → Types${NC}"
+  fi
+}
+
+# ─── 4. Saved Queries ─────────────────────────────────────────
 
 create_agent_queries() {
   local project_ref="$1"
-  section "3. Saved Queries — Proyecto: $project_ref"
+  section "4. Saved Queries — Proyecto: $project_ref"
 
   local project_json project_id
   project_json="$(api_try GET "/api/v3/projects/$project_ref" 2>/dev/null)" || {
@@ -513,11 +624,89 @@ QEOF
   fi
 }
 
-# ─── 4. Project Permissions ───────────────────────────────────
+# ─── 5. Project-Level Custom Fields ──────────────────────────
+
+PROJECT_CUSTOM_FIELDS=(
+  "Tech Stack:list:HTML/CSS,JS,Python,Bash,Docker,Terraform,Go,Rust"
+  "Project Type:list:Product,Library,Governance,Infrastructure,Research"
+  "Lead Agent:list:@jarvis,@inception,@gtd,@morpheus,@agent-smith,@oracle,@pepper,@ariadne"
+  "Automation Tier:list:Full-auto,Semi-auto,Human-heavy"
+  "Compliance Scope:list:ISO 27001,ISO 9001,ISO 42001,SOC2,ENS Alta"
+  "Repository URL:text:"
+  "Lighthouse Version:text:"
+)
+
+check_project_fields() {
+  local project_ref="$1"
+  section "5. Project Custom Fields — $project_ref"
+
+  # Fetch project schema to see available custom fields
+  local schema_json
+  schema_json="$(api_try GET "/api/v3/projects/$project_ref/schema" 2>/dev/null)" || {
+    warn "No se puede obtener el schema del proyecto (puede requerir admin)"
+    CHECKS_WARNED=$((CHECKS_WARNED + 1))
+    return 0
+  }
+
+  # Extract available custom field names from schema
+  local cf_names
+  cf_names="$(echo "$schema_json" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for key, val in data.items():
+    if key.startswith('customField'):
+        name = val.get('name', '')
+        if name:
+            print(name)
+" 2>/dev/null || echo "")"
+
+  local missing_pf=()
+  for field_spec in "${PROJECT_CUSTOM_FIELDS[@]}"; do
+    local field_name field_type field_values
+    field_name="$(echo "$field_spec" | cut -d: -f1)"
+    field_type="$(echo "$field_spec" | cut -d: -f2)"
+    field_values="$(echo "$field_spec" | cut -d: -f3)"
+
+    if echo "$cf_names" | grep -qxF "$field_name"; then
+      ok "Proyecto CF: $field_name ($field_type)"
+      CHECKS_PASSED=$((CHECKS_PASSED + 1))
+    else
+      fail "Proyecto CF: $field_name → NO ENCONTRADO"
+      missing_pf+=("$field_name|$field_type|$field_values")
+      CHECKS_FAILED=$((CHECKS_FAILED + 1))
+    fi
+  done
+
+  if [ ${#missing_pf[@]} -gt 0 ]; then
+    echo ""
+    echo -e "  ${YELLOW}────────────────────────────────────────────────${NC}"
+    echo -e "  ${YELLOW}ACCIÓN REQUERIDA: Crear custom fields de proyecto${NC}"
+    echo -e "  ${YELLOW}────────────────────────────────────────────────${NC}"
+    echo ""
+    echo "  Ir a: Administration → Custom fields → Projects → + Custom field"
+    echo ""
+
+    for mf in "${missing_pf[@]}"; do
+      local mf_name mf_type mf_values
+      mf_name="$(echo "$mf" | cut -d'|' -f1)"
+      mf_type="$(echo "$mf" | cut -d'|' -f2)"
+      mf_values="$(echo "$mf" | cut -d'|' -f3)"
+
+      echo -e "  ${BOLD}$mf_name${NC}"
+      echo "    Format: $mf_type"
+      if [ -n "$mf_values" ]; then
+        echo "    Possible values: $mf_values"
+      fi
+      echo ""
+    done
+  fi
+}
+
+# ─── 6. Project Permissions ───────────────────────────────────
 
 check_project_permissions() {
   local project_ref="$1"
-  section "4. Permisos — Proyecto: $project_ref"
+  section "6. Permisos — Proyecto: $project_ref"
 
   if form_json="$(api_try POST "/api/v3/projects/$project_ref/work_packages/form" '{}' 2>/dev/null)"; then
     ok "Crear Work Packages: permitido"
@@ -544,7 +733,7 @@ check_project_permissions() {
   fi
 }
 
-# ─── 5. Final Report ─────────────────────────────────────────
+# ─── 7. Final Report ─────────────────────────────────────────
 
 print_report() {
   section "REPORTE FINAL"
@@ -641,10 +830,13 @@ main() {
 
   for project in "${projects[@]}"; do
     check_custom_fields "$project"
+    check_statuses_and_types "$project"
 
     if [ "$check_only" = false ]; then
       create_agent_queries "$project"
     fi
+
+    check_project_fields "$project"
 
     if [ "$queries_only" = false ] && [ "$check_only" = false ]; then
       check_project_permissions "$project"

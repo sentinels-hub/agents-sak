@@ -54,10 +54,10 @@ Epic                    (objetivo macro — semanas/meses)
 | Campo | Tipo | Valores | Quién lo asigna | Uso |
 |-------|------|---------|----------------|-----|
 | `Difficulty` | List | Trivial, Easy, Medium, Hard, Expert | @inception (G2) | Estimar complejidad para asignación |
-| `Specialization` | List | Frontend, Backend, Infra, Security, QA, Compliance, DevOps, Full-stack | @inception (G2) | Routing a agente con expertise correcto |
+| `Specialization` | List | Frontend, Backend, Full-stack, Security, QA, DevOps, Compliance, Documentation | @inception (G2) | Routing a agente con expertise correcto |
 | `Agent Assigned` | List | @jarvis, @inception, @gtd, @morpheus, @agent-smith, @oracle, @pepper, @ariadne | @inception (G2) o auto | Quién debe ejecutar este WP |
-| `Tech Stack` | List (multi) | HTML/CSS, JavaScript, Python, Bash, Docker, Terraform, Go, Rust, SQL | @inception (G2) | Tecnologías requeridas |
-| `Automation Level` | List | Full-auto, Semi-auto, Human-required | @inception (G2) | Grado de autonomía del agente |
+| `Tech Stack` | Text | (texto libre — ej. "HTML/CSS, JavaScript, Python") | @inception (G2) | Tecnologías requeridas |
+| `Automation Level` | List | Full, Supervised, Human-required | @inception (G2) | Grado de autonomía del agente |
 | `Gate Current` | List | G0, G1, G2, G3, G4, G5, G6, G7, G8, G9 | Automático | Gate activo para este WP |
 
 ### Lógica de asignación automática
@@ -79,13 +79,13 @@ Si Gate Current=G5 → Agent Assigned=@agent-smith
 2. Obtiene Task#1897 con:
    - Difficulty: Medium
    - Specialization: Frontend
-   - Tech Stack: [HTML/CSS, JavaScript]
-   - Automation Level: Full-auto
+   - Tech Stack: "HTML/CSS, JavaScript"
+   - Automation Level: Full
    - Gate Current: G3
 3. @gtd sabe:
    - Complejidad media → no necesita escalar
    - Frontend con HTML/CSS + JS → sus herramientas estándar
-   - Full-auto → puede completar sin intervención humana
+   - Full → puede completar sin intervención humana
    - Está en G3 → debe implementar y transicionar a Developed
 ```
 
