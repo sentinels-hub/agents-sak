@@ -1,5 +1,7 @@
 # Agents SAK — Agents Sentinels Army Knife
 
+> **ARCHIVED** — This repository has been archived. All valuable content (catalogs, templates, cross-tool intelligence) has been migrated to [sentinels-labyrinth](https://github.com/sentinels-hub/sentinels-labyrinth). See [ARCHIVED.md](ARCHIVED.md) for the full migration map.
+
 Toolkit de herramientas reutilizables para agentes del ecosistema Sentinels.
 
 ## Visión
